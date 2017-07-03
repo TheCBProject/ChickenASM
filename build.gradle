@@ -1,0 +1,121 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        jcenter()
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'maven'
+
+group = "codechicken" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
+archivesBaseName = "ChickenASM"
+
+targetCompatibility = "1.8"
+sourceCompatibility = "1.8"
+
+version = "1.0.0." + (System.getenv("BUILD_NUMBER") ?: "1")
+
+repositories {
+    mavenCentral()
+    jcenter()
+    maven {
+        name = "forge"
+        url = "http://files.minecraftforge.net/maven"
+    }
+    maven {
+        name = "mojang"
+        url = "https://libraries.minecraft.net/"
+    }
+}
+
+configurations {
+    compile
+}
+
+dependencies {
+    compile 'org.ow2.asm:asm-debug-all:5.2'
+    compile 'com.google.guava:guava:21.0'
+    compile 'com.google.code.findbugs:jsr305:3.0.1'
+    compile 'org.apache.logging.log4j:log4j-core:2.8.1'
+    compile 'org.apache.logging.log4j:log4j-api:2.8.1'
+    compile 'net.minecraft:launchwrapper:1.12'
+    compile 'net.minecraftforge:forge:1.12-14.21.1.2389:universal'
+}
+
+task srcJar(type: Jar) {
+    from sourceSets.main.allSource
+    classifier = 'sources'
+}
+
+// Tell the artifact system about our extra jars
+artifacts {
+    archives srcJar
+}
+
+idea {
+    module{
+        sourceDirs += file('src/main/java')
+        sourceDirs += file('src/main/resources')
+
+        scopes.PROVIDED.plus += [configurations.compile]
+
+        downloadJavadoc = true
+        downloadSources = true
+    }
+}
+
+// Configure an upload task.
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            if (project.hasProperty("local_maven")) {
+                repository(url: "file://${local_maven}")
+                pom {
+                    groupId = project.group
+                    // Force the maven upload to use the <mcversion>-<version> syntax preferred at files
+                    artifactId = project.archivesBaseName
+                    project {
+                        name project.archivesBaseName
+                        packaging 'jar'
+                        description 'ChickenASM'
+                        url 'https://github.com/TheCBProject/ChickenASM'
+
+                        scm {
+                            url 'https://github.com/TheCBProject/ChickenASM'
+                            connection 'scm:git:git://github.com/TheCBProject/ChickenASM.git'
+                            developerConnection 'scm:git:git@github.com:TheCBProject/ChickenASM.git'
+                        }
+
+                        issueManagement {
+                            system 'github'
+                            url 'https://github.com/TheCBProject/ChickenASM/issues'
+                        }
+
+                        licenses {
+                            license {
+                                name 'GNU Lesser Public License (GPL), Version 2.1'
+                                url 'https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt'
+                                distribution 'repo'
+                            }
+                        }
+
+                        developers {
+                            developer {
+                                id 'chicken-bones'
+                                name 'chicken-bones'
+                                roles { role 'developer' }
+                            }
+                            developer {
+                                id 'covers1624'
+                                name 'covers1624'
+                                roles { role 'developer' }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
