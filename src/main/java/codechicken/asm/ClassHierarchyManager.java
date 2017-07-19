@@ -1,5 +1,6 @@
 package codechicken.asm;
 
+import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraft.launchwrapper.Launch;
 import net.minecraft.launchwrapper.LaunchClassLoader;
 import net.minecraftforge.fml.common.asm.transformers.deobf.FMLDeobfuscatingRemapper;
@@ -10,7 +11,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 
-public class ClassHierarchyManager {
+public class ClassHierarchyManager implements IClassTransformer {
+
+    @Override
+    public byte[] transform(String name, String transformedName, byte[] basicClass) {
+        if (basicClass != null) {
+            ClassHierarchyManager.declare(name, basicClass);
+        }
+        return basicClass;
+    }
 
     public static class SuperCache {
 

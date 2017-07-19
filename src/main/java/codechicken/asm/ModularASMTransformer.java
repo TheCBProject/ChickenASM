@@ -61,10 +61,6 @@ public class ModularASMTransformer {
         if (bytes == null) {
             return null;
         }
-        try {
-            ClassHierarchyManager.declare(name, bytes);
-        } catch (Exception ignored) {
-        }
 
         ClassNodeTransformerList list = transformers.get(name);
         return list == null ? bytes : list.transform(bytes);
