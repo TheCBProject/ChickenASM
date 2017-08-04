@@ -2,11 +2,18 @@ buildscript {
     repositories {
         mavenCentral()
         jcenter()
+	    maven {
+		    name = "forge"
+		    url = "http://files.minecraftforge.net/maven"
+	    }
     }
+	dependencies {
+		classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
+	}
 }
 
+apply plugin: 'net.minecraftforge.gradle.forge'
 apply plugin: 'java'
-apply plugin: 'idea'
 apply plugin: 'maven'
 
 group = "codechicken" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
@@ -15,34 +22,40 @@ archivesBaseName = "ChickenASM"
 targetCompatibility = "1.8"
 sourceCompatibility = "1.8"
 
-version = "1.0.0." + (System.getenv("BUILD_NUMBER") ?: "1")
+// Define properties file
+ext.configFile = file "build.properties"
 
-repositories {
-    mavenCentral()
-    jcenter()
-    maven {
-        name = "forge"
-        url = "http://files.minecraftforge.net/maven"
-    }
-    maven {
-        name = "mojang"
-        url = "https://libraries.minecraft.net/"
-    }
+configFile.withReader {
+	// Load config.  It shall from now be referenced as simply config or project.config
+	def prop = new Properties()
+	prop.load(it)
+	project.ext.config = new ConfigSlurper().parse prop
 }
 
-configurations {
-    compile
+version = "${project.config.mod_version}." + (System.getenv("BUILD_NUMBER") ?: "1")
+
+println config.mc_version + "-" + config.forge_version
+// Setup the forge minecraft plugin data. Specify the preferred forge/minecraft version here
+minecraft {
+	version = config.mc_version + "-" + config.forge_version
+	mappings = config.mappings
+	runDir = "run"
+	replace '${mod_version}', project.config.mod_version
+	makeObfSourceJar = false
 }
 
-dependencies {
-    compile 'org.ow2.asm:asm-debug-all:5.2'
-    compile 'com.google.guava:guava:21.0'
-    compile 'com.google.code.findbugs:jsr305:3.0.1'
-    compile 'org.apache.logging.log4j:log4j-core:2.8.1'
-    compile 'org.apache.logging.log4j:log4j-api:2.8.1'
-    compile 'net.minecraft:launchwrapper:1.12'
-    compile 'net.minecraftforge:forge:1.12-14.21.1.2389:universal'
-}
+//processResources {
+	//inputs.property "version", project.version
+	//inputs.property "mc_version", project.config.mc_version
+
+	//from(sourceSets.main.resources.srcDirs) {
+		//include 'mcmod.info'
+		//expand 'version': project.version, 'mc_version': project.config.mc_version
+	//}
+	//rename '(.+_at.cfg)', 'META-INF/$1'
+//}
+
+version = "${project.minecraft.version}-${project.version}"
 
 task srcJar(type: Jar) {
     from sourceSets.main.allSource
@@ -52,18 +65,6 @@ task srcJar(type: Jar) {
 // Tell the artifact system about our extra jars
 artifacts {
     archives srcJar
-}
-
-idea {
-    module {
-        sourceDirs += file('src/main/java')
-        sourceDirs += file('src/main/resources')
-
-        scopes.PROVIDED.plus += [configurations.compile]
-
-        downloadJavadoc = true
-        downloadSources = true
-    }
 }
 
 // Configure an upload task.
