@@ -1,6 +1,5 @@
 package codechicken.asm;
 
-import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraft.launchwrapper.Launch;
 import net.minecraft.launchwrapper.LaunchClassLoader;
 import net.minecraftforge.fml.common.asm.transformers.deobf.FMLDeobfuscatingRemapper;
@@ -11,15 +10,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 
-public class ClassHierarchyManager implements IClassTransformer {
+public class ClassHierarchyManager {
 
-    @Override
-    public byte[] transform(String name, String transformedName, byte[] basicClass) {
-        if (basicClass != null) {
-            ClassHierarchyManager.declare(name, basicClass);
-        }
-        return basicClass;
-    }
+    private static boolean obfuscated = !((Boolean)Launch.blackboard.get("fml.deobfuscatedEnvironment"));
 
     public static class SuperCache {
 
@@ -51,14 +44,14 @@ public class ClassHierarchyManager implements IClassTransformer {
     private static LaunchClassLoader cl = Launch.classLoader;
 
     public static String toKey(String name) {
-        if (ObfMapping.obfuscated) {
+        if (obfuscated) {
             name = FMLDeobfuscatingRemapper.INSTANCE.map(name.replace('.', '/')).replace('/', '.');
         }
         return name;
     }
 
     public static String unKey(String name) {
-        if (ObfMapping.obfuscated) {
+        if (obfuscated) {
             name = FMLDeobfuscatingRemapper.INSTANCE.unmap(name.replace('.', '/')).replace('/', '.');
         }
         return name;

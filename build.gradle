@@ -1,12 +1,12 @@
 buildscript {
-    repositories {
-        mavenCentral()
-        jcenter()
-	    maven {
-		    name = "forge"
-		    url = "http://files.minecraftforge.net/maven"
-	    }
-    }
+	repositories {
+		mavenCentral()
+		jcenter()
+		maven {
+			name = "forge"
+			url = "http://files.minecraftforge.net/maven"
+		}
+	}
 	dependencies {
 		classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
 	}
@@ -44,87 +44,84 @@ minecraft {
 	makeObfSourceJar = false
 }
 
-//processResources {
-	//inputs.property "version", project.version
-	//inputs.property "mc_version", project.config.mc_version
-
-	//from(sourceSets.main.resources.srcDirs) {
-		//include 'mcmod.info'
-		//expand 'version': project.version, 'mc_version': project.config.mc_version
-	//}
-	//rename '(.+_at.cfg)', 'META-INF/$1'
-//}
-
 version = "${project.minecraft.version}-${project.version}"
 
+def commonManifest = {
+	attributes 'TweakClass': 'codechicken.asm.internal.Tweaker'
+}
+
+jar {
+	manifest commonManifest
+}
+
 task srcJar(type: Jar) {
-    from sourceSets.main.allSource
-    classifier = 'sources'
+	from sourceSets.main.allSource
+	classifier = 'sources'
 }
 
 // Tell the artifact system about our extra jars
 artifacts {
-    archives srcJar
+	archives srcJar
 }
 
 // Configure an upload task.
 uploadArchives {
-    repositories {
-        mavenDeployer {
-            if (project.hasProperty("local_maven") || project.hasProperty("maven_pass")) {
-                if (project.hasProperty("maven_pass")) {
-                    println "Uploading to remote maven."
-                    repository(url: "http://maven_upload.covers1624.net/") {
-                        authentication(userName: "covers1624", password: project.getProperty("maven_pass"))
-                    }
-                } else {
-                    println "Uploading to local maven."
-                    repository(url: "file://${local_maven}")
-                }
-                pom {
-                    groupId = project.group
-                    // Force the maven upload to use the <mcversion>-<version> syntax preferred at files
-                    artifactId = project.archivesBaseName
-                    project {
-                        name project.archivesBaseName
-                        packaging 'jar'
-                        description 'ChickenASM'
-                        url 'https://github.com/TheCBProject/ChickenASM'
+	repositories {
+		mavenDeployer {
+			if (project.hasProperty("local_maven") || project.hasProperty("maven_pass")) {
+				if (project.hasProperty("maven_pass")) {
+					println "Uploading to remote maven."
+					repository(url: "http://maven_upload.covers1624.net/") {
+						authentication(userName: "covers1624", password: project.getProperty("maven_pass"))
+					}
+				} else {
+					println "Uploading to local maven."
+					repository(url: "file://${local_maven}")
+				}
+				pom {
+					groupId = project.group
+					// Force the maven upload to use the <mcversion>-<version> syntax preferred at files
+					artifactId = project.archivesBaseName
+					project {
+						name project.archivesBaseName
+						packaging 'jar'
+						description 'ChickenASM'
+						url 'https://github.com/TheCBProject/ChickenASM'
 
-                        scm {
-                            url 'https://github.com/TheCBProject/ChickenASM'
-                            connection 'scm:git:git://github.com/TheCBProject/ChickenASM.git'
-                            developerConnection 'scm:git:git@github.com:TheCBProject/ChickenASM.git'
-                        }
+						scm {
+							url 'https://github.com/TheCBProject/ChickenASM'
+							connection 'scm:git:git://github.com/TheCBProject/ChickenASM.git'
+							developerConnection 'scm:git:git@github.com:TheCBProject/ChickenASM.git'
+						}
 
-                        issueManagement {
-                            system 'github'
-                            url 'https://github.com/TheCBProject/ChickenASM/issues'
-                        }
+						issueManagement {
+							system 'github'
+							url 'https://github.com/TheCBProject/ChickenASM/issues'
+						}
 
-                        licenses {
-                            license {
-                                name 'GNU Lesser Public License (GPL), Version 2.1'
-                                url 'https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt'
-                                distribution 'repo'
-                            }
-                        }
+						licenses {
+							license {
+								name 'GNU Lesser Public License (GPL), Version 2.1'
+								url 'https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt'
+								distribution 'repo'
+							}
+						}
 
-                        developers {
-                            developer {
-                                id 'chicken-bones'
-                                name 'chicken-bones'
-                                roles { role 'developer' }
-                            }
-                            developer {
-                                id 'covers1624'
-                                name 'covers1624'
-                                roles { role 'developer' }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+						developers {
+							developer {
+								id 'chicken-bones'
+								name 'chicken-bones'
+								roles { role 'developer' }
+							}
+							developer {
+								id 'covers1624'
+								name 'covers1624'
+								roles { role 'developer' }
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 }
