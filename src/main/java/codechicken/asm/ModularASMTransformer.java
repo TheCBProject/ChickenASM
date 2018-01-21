@@ -108,6 +108,12 @@ public class ModularASMTransformer {
                 bytes = createBytes(cnode, writeFlags);
                 if (DUMP_RAW) {
                     File file = new File(dumpFolder, cnode.name.replace('/', '#') + ".class");
+                    if (!file.exists()) {
+                        if (!file.getParentFile().exists()) {
+                            file.getParentFile().mkdirs();
+                        }
+                        file.createNewFile();
+                    }
                     FileOutputStream fos = new FileOutputStream(file);
                     fos.write(bytes);
                     fos.flush();

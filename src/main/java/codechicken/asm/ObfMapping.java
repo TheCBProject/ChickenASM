@@ -30,7 +30,9 @@ public class ObfMapping {
 
         @SuppressWarnings ("unchecked")
         public ObfRemapper() {
-
+            if (isUnitTest) {
+                return;
+            }
             try {
                 Field rawFieldMapsField = FMLDeobfuscatingRemapper.class.getDeclaredField("rawFieldMaps");
                 Field rawMethodMapsField = FMLDeobfuscatingRemapper.class.getDeclaredField("rawMethodMaps");
@@ -65,31 +67,26 @@ public class ObfMapping {
 
         @Override
         public String mapMethodName(String owner, String name, String desc) {
-
             String s = funcs.get(name);
             return s == null ? name : s;
         }
 
         @Override
         public String mapFieldName(String owner, String name, String desc) {
-
             String s = fields.get(name);
             return s == null ? name : s;
         }
 
         @Override
         public String map(String typeName) {
-
             return FMLDeobfuscatingRemapper.INSTANCE.unmap(typeName);
         }
 
         public String unmap(String typeName) {
-
             return FMLDeobfuscatingRemapper.INSTANCE.map(typeName);
         }
 
         public boolean isObf(String typeName) {
-
             return !map(typeName).equals(typeName) || !unmap(typeName).equals(typeName);
         }
     }
@@ -97,7 +94,6 @@ public class ObfMapping {
     public static class MCPRemapper extends Remapper implements LineProcessor<Void> {
 
         public static File[] getConfFiles() {
-
             // check for GradleStart system vars
             File notchSrg = new File(System.getProperty("net.minecraftforge.gradle.GradleStart.srg.notch-srg"));
             File csvDir = new File(System.getProperty("net.minecraftforge.gradle.GradleStart.csvDir"));
@@ -118,7 +114,6 @@ public class ObfMapping {
         private HashMap<String, String> funcs = new HashMap<>();
 
         public MCPRemapper() {
-
             File[] mappings = getConfFiles();
             try {
                 Resources.readLines(mappings[1].toURI().toURL(), Charsets.UTF_8, this);
@@ -130,21 +125,18 @@ public class ObfMapping {
 
         @Override
         public String mapMethodName(String owner, String name, String desc) {
-
             String s = funcs.get(name);
             return s == null ? name : s;
         }
 
         @Override
         public String mapFieldName(String owner, String name, String desc) {
-
             String s = fields.get(name);
             return s == null ? name : s;
         }
 
         @Override
         public boolean processLine(@Nonnull String line) throws IOException {
-
             int i = line.indexOf(',');
             String srg = line.substring(0, i);
             int i2 = i + 1;
@@ -156,16 +148,16 @@ public class ObfMapping {
 
         @Override
         public Void getResult() {
-
             return null;
         }
     }
 
+    //Use when unit testing is a thing.
+    private static boolean isUnitTest = Boolean.getBoolean("ccl.unit_testing");
     public static ObfRemapper obfMapper = new ObfRemapper();
     public static Remapper mcpMapper = null;
 
     public static void loadMCPRemapper() {
-
         if (mcpMapper == null) {
             mcpMapper = new MCPRemapper();
         }
@@ -177,7 +169,7 @@ public class ObfMapping {
         boolean obf = true;
         try {
             obf = Launch.classLoader.getClassBytes("net.minecraft.world.World") == null;
-        } catch (IOException ignored) {
+        } catch (Exception ignored) {
         }
         obfuscated = obf;
         if (!obf) {
@@ -190,17 +182,14 @@ public class ObfMapping {
     public String s_desc;
 
     public ObfMapping(String owner) {
-
         this(owner, "", "");
     }
 
     public ObfMapping(String owner, String name) {
-
         this(owner, name, "");
     }
 
     public ObfMapping(String owner, String name, String desc) {
-
         this.s_owner = owner;
         this.s_name = name;
         this.s_desc = desc;
@@ -211,12 +200,10 @@ public class ObfMapping {
     }
 
     public ObfMapping(ObfMapping descmap, String subclass) {
-
         this(subclass, descmap.s_name, descmap.s_desc);
     }
 
     public static ObfMapping fromDesc(String s) {
-
         int lastDot = s.lastIndexOf('.');
         if (lastDot < 0) {
             return new ObfMapping(s, "", "");
@@ -239,22 +226,18 @@ public class ObfMapping {
     }
 
     public ObfMapping subclass(String subclass) {
-
         return new ObfMapping(this, subclass);
     }
 
     public boolean matches(MethodNode node) {
-
         return s_name.equals(node.name) && s_desc.equals(node.desc);
     }
 
     public boolean matches(MethodInsnNode node) {
-
         return s_owner.equals(node.owner) && s_name.equals(node.name) && s_desc.equals(node.desc);
     }
 
     public AbstractInsnNode toInsn(int opcode) {
-
         if (isClass()) {
             return new TypeInsnNode(opcode, s_owner);
         } else if (isMethod()) {
@@ -265,58 +248,47 @@ public class ObfMapping {
     }
 
     public void visitTypeInsn(MethodVisitor mv, int opcode) {
-
         mv.visitTypeInsn(opcode, s_owner);
     }
 
     public void visitMethodInsn(MethodVisitor mv, int opcode) {
-
         mv.visitMethodInsn(opcode, s_owner, s_name, s_desc, opcode == Opcodes.INVOKEINTERFACE);
     }
 
     public void visitFieldInsn(MethodVisitor mv, int opcode) {
-
         mv.visitFieldInsn(opcode, s_owner, s_name, s_desc);
     }
 
     public MethodVisitor visitMethod(ClassVisitor visitor, int access, String[] exceptions) {
-
         return visitor.visitMethod(access, s_name, s_desc, null, exceptions);
     }
 
     public FieldVisitor visitField(ClassVisitor visitor, int access, Object value) {
-
         return visitor.visitField(access, s_name, s_desc, null, value);
     }
 
     public boolean isClass(String name) {
-
         return name.replace('.', '/').equals(s_owner);
     }
 
     public boolean matches(String name, String desc) {
-
         return s_name.equals(name) && s_desc.equals(desc);
     }
 
     public boolean matches(FieldNode node) {
-
         return s_name.equals(node.name) && s_desc.equals(node.desc);
     }
 
     public boolean matches(FieldInsnNode node) {
-
         return s_owner.equals(node.owner) && s_name.equals(node.name) && s_desc.equals(node.desc);
     }
 
     public String javaClass() {
-
         return s_owner.replace('/', '.');
     }
 
     @Override
     public boolean equals(Object obj) {
-
         if (!(obj instanceof ObfMapping)) {
             return false;
         }
@@ -327,13 +299,11 @@ public class ObfMapping {
 
     @Override
     public int hashCode() {
-
         return Objects.hashCode(s_desc, s_name, s_owner);
     }
 
     @Override
     public String toString() {
-
         if (s_name.length() == 0) {
             return "[" + s_owner + "]";
         }
@@ -344,32 +314,26 @@ public class ObfMapping {
     }
 
     public String methodDesc() {
-
         return s_owner + "." + s_name + s_desc;
     }
 
     public String fieldDesc() {
-
         return s_owner + "." + s_name + ":" + s_desc;
     }
 
     public boolean isClass() {
-
         return s_name.length() == 0;
     }
 
     public boolean isMethod() {
-
         return s_desc.contains("(");
     }
 
     public boolean isField() {
-
         return !isClass() && !isMethod();
     }
 
     public ObfMapping map(Remapper mapper) {
-
         if (mapper == null) {
             return this;
         }
@@ -392,13 +356,11 @@ public class ObfMapping {
     }
 
     public ObfMapping toRuntime() {
-
         map(mcpMapper);
         return this;
     }
 
     public ObfMapping toClassloading() {
-
         if (!obfuscated) {
             map(mcpMapper);
         } else if (obfMapper.isObf(s_owner)) {
@@ -408,7 +370,6 @@ public class ObfMapping {
     }
 
     public ObfMapping copy() {
-
         return new ObfMapping(s_owner, s_name, s_desc);
     }
 }

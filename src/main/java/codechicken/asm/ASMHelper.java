@@ -135,10 +135,10 @@ public class ASMHelper {
 
     public static void dump(Acceptor acceptor, File file, boolean filterImportant, boolean sortLocals, boolean textify) {
         try {
-            if (!file.getParentFile().exists()) {
-                file.getParentFile().mkdirs();
-            }
             if (!file.exists()) {
+                if (!file.getParentFile().exists()) {
+                    file.getParentFile().mkdirs();
+                }
                 file.createNewFile();
             }
 
