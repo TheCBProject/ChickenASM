@@ -48,6 +48,7 @@ version = "${project.minecraft.version}-${project.version}"
 
 def commonManifest = {
 	attributes 'TweakClass': 'codechicken.asm.internal.Tweaker'
+	attributes 'Maven-Artifact': "${project.group}:${project.archivesBaseName}:${project.version}"
 }
 
 jar {
