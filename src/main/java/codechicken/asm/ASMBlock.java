@@ -16,7 +16,7 @@ import static org.objectweb.asm.tree.AbstractInsnNode.*;
 public class ASMBlock {
 
     public InsnListSection list;
-    private BiMap<String, LabelNode> labels;
+    public BiMap<String, LabelNode> labels;
 
     public ASMBlock(InsnListSection list, BiMap<String, LabelNode> labels) {
         this.list = list;
@@ -52,8 +52,7 @@ public class ASMBlock {
             switch (insn.getType()) {
                 case LABEL:
                     AbstractInsnNode insn2 = insn.clone(labelMap);
-                    if (insn2 == insn)//identity mapping
-                    {
+                    if (insn2 == insn) {//identity mapping
                         continue;
                     }
                     if (usedLabels.contains(insn2)) {

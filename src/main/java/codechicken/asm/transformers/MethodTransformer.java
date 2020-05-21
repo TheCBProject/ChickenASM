@@ -14,7 +14,7 @@ public abstract class MethodTransformer extends ClassNodeTransformer {
     public final ObfMapping method;
 
     public MethodTransformer(ObfMapping method) {
-        this.method = method.toClassloading();
+        this.method = method;
     }
 
     @Override

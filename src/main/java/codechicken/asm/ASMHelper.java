@@ -20,12 +20,7 @@ import java.util.Map;
 
 public class ASMHelper {
 
-    public static Logger logger = LogManager.getLogger("CCL ASM");
-
-    public interface Acceptor {
-
-        void accept(ClassVisitor cv) throws IOException;
-    }
+    public static Logger logger = LogManager.getLogger();
 
     public static MethodNode findMethod(ObfMapping methodmap, ClassNode cnode) {
         for (MethodNode mnode : cnode.methods) {
@@ -157,19 +152,20 @@ public class ASMHelper {
         }
     }
 
-    public static void dump(Acceptor acceptor, File file, boolean filterImportant, boolean sortLocals) {
-        dump(acceptor, file, filterImportant, sortLocals, true/*config.getTag("textify").getBooleanValue(true)*/);
+    public static void dump(final byte[] bytes, File file, boolean filterImportant, boolean sortLocals, boolean textify) {
+        dump(cv -> new ClassReader(bytes).accept(cv, ClassReader.EXPAND_FRAMES), file, filterImportant, sortLocals, textify);
     }
 
-    public static void dump(final byte[] bytes, File file, boolean filterImportant, boolean sortLocals) {
-        dump(cv -> new ClassReader(bytes).accept(cv, ClassReader.EXPAND_FRAMES), file, filterImportant, sortLocals);
+    public static void dump(final InputStream is, File file, boolean filterImportant, boolean sortLocals, boolean textify) {
+        dump(cv -> new ClassReader(is).accept(cv, ClassReader.EXPAND_FRAMES), file, filterImportant, sortLocals, textify);
     }
 
-    public static void dump(final InputStream is, File file, boolean filterImportant, boolean sortLocals) {
-        dump(cv -> new ClassReader(is).accept(cv, ClassReader.EXPAND_FRAMES), file, filterImportant, sortLocals);
+    public static void dump(final ClassNode cnode, File file, boolean filterImportant, boolean sortLocals, boolean textify) {
+        dump(cnode::accept, file, filterImportant, sortLocals, textify);
     }
 
-    public static void dump(final ClassNode cnode, File file, boolean filterImportant, boolean sortLocals) {
-        dump(cnode::accept, file, filterImportant, sortLocals);
+    public interface Acceptor {
+
+        void accept(ClassVisitor cv) throws IOException;
     }
 }

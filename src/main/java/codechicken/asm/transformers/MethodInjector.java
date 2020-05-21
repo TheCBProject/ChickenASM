@@ -1,6 +1,11 @@
 package codechicken.asm.transformers;
 
-import codechicken.asm.*;
+import codechicken.asm.ASMBlock;
+import codechicken.asm.InsnComparator;
+import codechicken.asm.InsnListSection;
+import codechicken.asm.ObfMapping;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.MethodNode;
 
@@ -8,13 +13,15 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Set;
 
-import static codechicken.asm.ASMHelper.logger;
+import static codechicken.asm.ModularASMTransformer.LEVEL;
 
 /**
  * Injects a call before or after the needle.
  * If needle is null it will inject at the start or end of the method.
  */
 public class MethodInjector extends MethodTransformer {
+
+    private static final Logger logger = LogManager.getLogger();
 
     @Nullable
     public ASMBlock needle;
@@ -30,7 +37,7 @@ public class MethodInjector extends MethodTransformer {
      * @param injection The injection to apply.
      * @param before    Weather to apply before or after the provided needle.
      */
-    public MethodInjector(@Nonnull ObfMapping method, @Nullable ASMBlock needle, @Nonnull ASMBlock injection, @Nonnull boolean before) {
+    public MethodInjector(@Nonnull ObfMapping method, @Nullable ASMBlock needle, @Nonnull ASMBlock injection, boolean before) {
         super(method);
         this.needle = needle;
         this.injection = injection;
@@ -44,7 +51,7 @@ public class MethodInjector extends MethodTransformer {
      * @param injection The injection to apply.
      * @param before    Weather to apply at the start of the method or the end.
      */
-    public MethodInjector(@Nonnull ObfMapping method, @Nonnull ASMBlock injection, @Nonnull boolean before) {
+    public MethodInjector(@Nonnull ObfMapping method, @Nonnull ASMBlock injection, boolean before) {
         this(method, null, injection, before);
     }
 
@@ -56,7 +63,7 @@ public class MethodInjector extends MethodTransformer {
      * @param injection The injection to apply.
      * @param before    Weather to apply before or after the provided needle.
      */
-    public MethodInjector(@Nonnull ObfMapping method, @Nonnull InsnList needle, @Nonnull InsnList injection, @Nonnull boolean before) {
+    public MethodInjector(@Nonnull ObfMapping method, @Nonnull InsnList needle, @Nonnull InsnList injection, boolean before) {
         this(method, new ASMBlock(needle), new ASMBlock(injection), before);
     }
 
@@ -67,7 +74,7 @@ public class MethodInjector extends MethodTransformer {
      * @param injection The injection to apply.
      * @param before    Weather to apply at the start of the method or the end.
      */
-    public MethodInjector(@Nonnull ObfMapping method, @Nonnull InsnList injection, @Nonnull boolean before) {
+    public MethodInjector(@Nonnull ObfMapping method, @Nonnull InsnList injection, boolean before) {
         this(method, null, new ASMBlock(injection), before);
     }
 
@@ -79,7 +86,7 @@ public class MethodInjector extends MethodTransformer {
     @Override
     public void transform(MethodNode mv) {
         if (needle == null) {
-            ModularASMTransformer.log("Injecting " + (before ? "before" : "after") + " method " + method);
+            logger.log(LEVEL, "Injecting {} method '{}'", before ? "before" : "after", method);
             if (before) {
                 mv.instructions.insert(injection.rawListCopy());
             } else {
@@ -87,7 +94,7 @@ public class MethodInjector extends MethodTransformer {
             }
         } else {
             for (InsnListSection key : InsnComparator.findN(mv.instructions, needle.list)) {
-                ModularASMTransformer.log("Injecting " + (before ? "before" : "after") + " method " + method + " @ " + key.start + " - " + key.end);
+                logger.log(LEVEL, "Injecting {} method '{}' @ {} - {}", before ? "before" : "after", method, key.start, key.end);
                 ASMBlock injectBlock = injection.copy().mergeLabels(needle.applyLabels(key));
 
                 if (before) {

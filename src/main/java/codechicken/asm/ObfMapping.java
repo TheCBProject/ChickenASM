@@ -1,11 +1,7 @@
 package codechicken.asm;
 
-import com.google.common.base.Charsets;
+import codechicken.asm.api.EnvironmentExtension.ExtensionLoader;
 import com.google.common.base.Objects;
-import com.google.common.io.LineProcessor;
-import com.google.common.io.Resources;
-import net.minecraft.launchwrapper.Launch;
-import net.minecraftforge.fml.common.asm.transformers.deobf.FMLDeobfuscatingRemapper;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
@@ -13,169 +9,9 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.commons.Remapper;
 import org.objectweb.asm.tree.*;
 
-import javax.annotation.Nonnull;
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-
 public class ObfMapping {
 
-    public static class ObfRemapper extends Remapper {
-
-        private HashMap<String, String> fields = new HashMap<>();
-        private HashMap<String, String> funcs = new HashMap<>();
-
-        @SuppressWarnings ("unchecked")
-        public ObfRemapper() {
-            if (isUnitTest) {
-                return;
-            }
-            try {
-                Field rawFieldMapsField = FMLDeobfuscatingRemapper.class.getDeclaredField("rawFieldMaps");
-                Field rawMethodMapsField = FMLDeobfuscatingRemapper.class.getDeclaredField("rawMethodMaps");
-                rawFieldMapsField.setAccessible(true);
-                rawMethodMapsField.setAccessible(true);
-                Map<String, Map<String, String>> rawFieldMaps = (Map<String, Map<String, String>>) rawFieldMapsField.get(FMLDeobfuscatingRemapper.INSTANCE);
-                Map<String, Map<String, String>> rawMethodMaps = (Map<String, Map<String, String>>) rawMethodMapsField.get(FMLDeobfuscatingRemapper.INSTANCE);
-
-                if (rawFieldMaps == null) {
-                    throw new IllegalStateException("codechicken.lib.asm.ObfMapping loaded too early. Make sure all references are in or after the asm transformer load stage");
-                }
-
-                for (Map<String, String> map : rawFieldMaps.values()) {
-                    for (Entry<String, String> entry : map.entrySet()) {
-                        if (entry.getValue().startsWith("field")) {
-                            fields.put(entry.getValue(), entry.getKey().substring(0, entry.getKey().indexOf(':')));
-                        }
-                    }
-                }
-                for (Map<String, String> map : rawMethodMaps.values()) {
-                    for (Entry<String, String> entry : map.entrySet()) {
-                        if (entry.getValue().startsWith("func")) {
-                            funcs.put(entry.getValue(), entry.getKey().substring(0, entry.getKey().indexOf('(')));
-                        }
-                    }
-                }
-
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public String mapMethodName(String owner, String name, String desc) {
-            String s = funcs.get(name);
-            return s == null ? name : s;
-        }
-
-        @Override
-        public String mapFieldName(String owner, String name, String desc) {
-            String s = fields.get(name);
-            return s == null ? name : s;
-        }
-
-        @Override
-        public String map(String typeName) {
-            return FMLDeobfuscatingRemapper.INSTANCE.unmap(typeName);
-        }
-
-        public String unmap(String typeName) {
-            return FMLDeobfuscatingRemapper.INSTANCE.map(typeName);
-        }
-
-        public boolean isObf(String typeName) {
-            return !map(typeName).equals(typeName) || !unmap(typeName).equals(typeName);
-        }
-    }
-
-    public static class MCPRemapper extends Remapper implements LineProcessor<Void> {
-
-        public static File[] getConfFiles() {
-            // check for GradleStart system vars
-            File notchSrg = new File(System.getProperty("net.minecraftforge.gradle.GradleStart.srg.notch-srg"));
-            File csvDir = new File(System.getProperty("net.minecraftforge.gradle.GradleStart.csvDir"));
-
-            if (notchSrg.exists() && csvDir.exists()) {
-                File fieldCsv = new File(csvDir, "fields.csv");
-                File methodCsv = new File(csvDir, "methods.csv");
-
-                if (notchSrg.exists() && fieldCsv.exists() && methodCsv.exists()) {
-                    return new File[] { notchSrg, fieldCsv, methodCsv };
-                }
-            }
-
-            throw new RuntimeException("Failed to grab mappings from GradleStart args.");
-        }
-
-        private HashMap<String, String> fields = new HashMap<>();
-        private HashMap<String, String> funcs = new HashMap<>();
-
-        public MCPRemapper() {
-            File[] mappings = getConfFiles();
-            try {
-                Resources.readLines(mappings[1].toURI().toURL(), Charsets.UTF_8, this);
-                Resources.readLines(mappings[2].toURI().toURL(), Charsets.UTF_8, this);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        @Override
-        public String mapMethodName(String owner, String name, String desc) {
-            String s = funcs.get(name);
-            return s == null ? name : s;
-        }
-
-        @Override
-        public String mapFieldName(String owner, String name, String desc) {
-            String s = fields.get(name);
-            return s == null ? name : s;
-        }
-
-        @Override
-        public boolean processLine(@Nonnull String line) throws IOException {
-            int i = line.indexOf(',');
-            String srg = line.substring(0, i);
-            int i2 = i + 1;
-            i = line.indexOf(',', i2);
-            String mcp = line.substring(i2, i);
-            (srg.startsWith("func") ? funcs : fields).put(srg, mcp);
-            return true;
-        }
-
-        @Override
-        public Void getResult() {
-            return null;
-        }
-    }
-
-    //Use when unit testing is a thing.
-    private static boolean isUnitTest = Boolean.getBoolean("ccl.unit_testing");
-    public static ObfRemapper obfMapper = new ObfRemapper();
-    public static Remapper mcpMapper = null;
-
-    public static void loadMCPRemapper() {
-        if (mcpMapper == null) {
-            mcpMapper = new MCPRemapper();
-        }
-    }
-
-    public static final boolean obfuscated;
-
-    static {
-        boolean obf = true;
-        try {
-            obf = Launch.classLoader.getClassBytes("net.minecraft.world.World") == null;
-        } catch (Exception ignored) {
-        }
-        obfuscated = obf;
-        if (!obf) {
-            loadMCPRemapper();
-        }
-    }
+    public static final Remapper remapper = ExtensionLoader.EXTENSION != null ? ExtensionLoader.EXTENSION.getRemapper() : null;
 
     public String s_owner;
     public String s_name;
@@ -287,32 +123,6 @@ public class ObfMapping {
         return s_owner.replace('/', '.');
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (!(obj instanceof ObfMapping)) {
-            return false;
-        }
-
-        ObfMapping desc = (ObfMapping) obj;
-        return s_owner.equals(desc.s_owner) && s_name.equals(desc.s_name) && s_desc.equals(desc.s_desc);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(s_desc, s_name, s_owner);
-    }
-
-    @Override
-    public String toString() {
-        if (s_name.length() == 0) {
-            return "[" + s_owner + "]";
-        }
-        if (s_desc.length() == 0) {
-            return "[" + s_owner + "." + s_name + "]";
-        }
-        return "[" + (isMethod() ? methodDesc() : fieldDesc()) + "]";
-    }
-
     public String methodDesc() {
         return s_owner + "." + s_name + s_desc;
     }
@@ -355,21 +165,40 @@ public class ObfMapping {
         return this;
     }
 
-    public ObfMapping toRuntime() {
-        map(mcpMapper);
-        return this;
-    }
-
-    public ObfMapping toClassloading() {
-        if (!obfuscated) {
-            map(mcpMapper);
-        } else if (obfMapper.isObf(s_owner)) {
-            map(obfMapper);
+    public ObfMapping remap() {
+        if (remapper != null) {
+            map(remapper);
         }
         return this;
     }
 
     public ObfMapping copy() {
         return new ObfMapping(s_owner, s_name, s_desc);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof ObfMapping)) {
+            return false;
+        }
+
+        ObfMapping desc = (ObfMapping) obj;
+        return s_owner.equals(desc.s_owner) && s_name.equals(desc.s_name) && s_desc.equals(desc.s_desc);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(s_desc, s_name, s_owner);
+    }
+
+    @Override
+    public String toString() {
+        if (s_name.length() == 0) {
+            return "[" + s_owner + "]";
+        }
+        if (s_desc.length() == 0) {
+            return "[" + s_owner + "." + s_name + "]";
+        }
+        return "[" + (isMethod() ? methodDesc() : fieldDesc()) + "]";
     }
 }

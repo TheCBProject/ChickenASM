@@ -1,23 +1,21 @@
 package codechicken.asm;
 
-import net.minecraft.launchwrapper.Launch;
-import net.minecraft.launchwrapper.LaunchClassLoader;
-import net.minecraftforge.fml.common.asm.transformers.deobf.FMLDeobfuscatingRemapper;
 import org.objectweb.asm.ClassReader;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Set;
+
+import static codechicken.asm.api.EnvironmentExtension.ExtensionLoader;
 
 public class ClassHierarchyManager {
-
-    private static boolean obfuscated = !((Boolean)Launch.blackboard.get("fml.deobfuscatedEnvironment"));
 
     public static class SuperCache {
 
         String superclass;
-        public HashSet<String> parents = new HashSet<>();
+        public Set<String> parents = new HashSet<>();
         private boolean flattened;
 
         public void add(String parent) {
@@ -41,21 +39,6 @@ public class ClassHierarchyManager {
     }
 
     public static HashMap<String, SuperCache> superclasses = new HashMap<>();
-    private static LaunchClassLoader cl = Launch.classLoader;
-
-    public static String toKey(String name) {
-        if (obfuscated) {
-            name = FMLDeobfuscatingRemapper.INSTANCE.map(name.replace('.', '/')).replace('/', '.');
-        }
-        return name;
-    }
-
-    public static String unKey(String name) {
-        if (obfuscated) {
-            name = FMLDeobfuscatingRemapper.INSTANCE.unmap(name.replace('.', '/')).replace('/', '.');
-        }
-        return name;
-    }
 
     /**
      * @param name       The class in question
@@ -63,8 +46,6 @@ public class ClassHierarchyManager {
      * @return true if clazz extends, either directly or indirectly, superclass.
      */
     public static boolean classExtends(String name, String superclass) {
-        name = toKey(name);
-        superclass = toKey(superclass);
 
         if (name.equals(superclass)) {
             return true;
@@ -81,19 +62,20 @@ public class ClassHierarchyManager {
     }
 
     private static SuperCache declareClass(String name) {
-        name = toKey(name);
         SuperCache cache = superclasses.get(name);
 
         if (cache != null) {
             return cache;
         }
 
-        try {
-            byte[] bytes = cl.getClassBytes(unKey(name));
-            if (bytes != null) {
-                cache = declareASM(bytes);
+        if (ExtensionLoader.EXTENSION != null) {
+            try {
+                byte[] bytes = ExtensionLoader.EXTENSION.getClassBytes(name);
+                if (bytes != null) {
+                    cache = declareASM(bytes);
+                }
+            } catch (Exception ignored) {
             }
-        } catch (Exception ignored) {
         }
 
         if (cache != null) {
@@ -117,12 +99,12 @@ public class ClassHierarchyManager {
         } else if (name.equals("java.lang.Object")) {
             return cache;
         } else {
-            cache.superclass = toKey(aclass.getSuperclass().getName());
+            cache.superclass = aclass.getSuperclass().getName();
         }
 
         cache.add(cache.superclass);
         for (Class<?> iclass : aclass.getInterfaces()) {
-            cache.add(toKey(iclass.getName()));
+            cache.add(iclass.getName());
         }
 
         return cache;
@@ -130,13 +112,13 @@ public class ClassHierarchyManager {
 
     private static SuperCache declareASM(@Nonnull byte[] bytes) {
         ClassReader reader = new ClassReader(bytes);
-        String name = toKey(reader.getClassName());
+        String name = reader.getClassName();
 
         SuperCache cache = getOrCreateCache(name);
-        cache.superclass = toKey(reader.getSuperName().replace('/', '.'));
+        cache.superclass = reader.getSuperName().replace('/', '.');
         cache.add(cache.superclass);
         for (String iclass : reader.getInterfaces()) {
-            cache.add(toKey(iclass.replace('/', '.')));
+            cache.add(iclass.replace('/', '.'));
         }
 
         return cache;
@@ -153,18 +135,13 @@ public class ClassHierarchyManager {
         return superclasses.computeIfAbsent(name, k -> new SuperCache());
     }
 
-    public static String getSuperClass(@Nonnull String name, boolean runtime) {
-        name = toKey(name);
+    public static String getSuperClass(@Nonnull String name) {
         SuperCache cache = declareClass(name);
         if (cache == null) {
             return "java.lang.Object";
         }
 
         cache.flatten();
-        String s = cache.superclass;
-        if (!runtime) {
-            s = FMLDeobfuscatingRemapper.INSTANCE.unmap(s);
-        }
-        return s;
+        return cache.superclass;
     }
 }

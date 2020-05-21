@@ -4,15 +4,8 @@ import org.objectweb.asm.ClassWriter;
 
 public class CC_ClassWriter extends ClassWriter {
 
-    private final boolean runtime;
-
     public CC_ClassWriter(int flags) {
-        this(flags, false);
-    }
-
-    public CC_ClassWriter(int flags, boolean runtime) {
         super(flags);
-        this.runtime = runtime;
     }
 
     @Override
@@ -26,7 +19,7 @@ public class CC_ClassWriter extends ClassWriter {
             return type2;
         }
         do {
-            c = ClassHierarchyManager.getSuperClass(c, runtime);
+            c = ClassHierarchyManager.getSuperClass(c);
         }
         while (!ClassHierarchyManager.classExtends(d, c));
 

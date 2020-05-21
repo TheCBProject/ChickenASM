@@ -1,145 +1,202 @@
 buildscript {
-	repositories {
-		mavenCentral()
-		jcenter()
-		maven {
-			name = "forge"
-			url = "http://files.minecraftforge.net/maven"
-		}
-	}
-	dependencies {
-		classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
-	}
+    repositories {
+        mavenLocal()
+        jcenter()
+        mavenCentral()
+        maven { url = "https://files.minecraftforge.net/maven" }
+    }
+    dependencies {
+        classpath 'net.minecraftforge.gradle:ForgeGradle:3.+' //Here for sign task :D
+    }
+}
+plugins {
+    id 'java'
+    id 'maven-publish'
+    id 'com.github.johnrengelman.shadow' version '5.2.0'
 }
 
-apply plugin: 'net.minecraftforge.gradle.forge'
-apply plugin: 'java'
-apply plugin: 'maven'
-
-group = "codechicken" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
+group = "codechicken"
 archivesBaseName = "ChickenASM"
+version = '2.0.0'
 
 targetCompatibility = "1.8"
 sourceCompatibility = "1.8"
 
-// Define properties file
-ext.configFile = file "build.properties"
-
-configFile.withReader {
-	// Load config.  It shall from now be referenced as simply config or project.config
-	def prop = new Properties()
-	prop.load(it)
-	project.ext.config = new ConfigSlurper().parse prop
+def signProps = [:]
+if (System.getenv("KEY_STORE")) {
+    println "Using Env variables for jar signing."
+    signProps['keyStore'] = System.getenv("KEY_STORE")
+    file(System.getenv("KEY_STORE_PROPS")).withReader {
+        def props = new Properties()
+        props.load(it)
+        signProps.putAll(props)
+    }
+} else if (project.hasProperty('keyStore')) {
+    println "Using Project properties for jar signing."
+    signProps['keyStore'] = project.getProperty('keyStore')
+    signProps['storePass'] = project.getProperty('keyStorePass')
+    signProps['alias'] = project.getProperty('keyStoreAlias')
+    signProps['keyPass'] = project.getProperty('keyStoreKeyPass')
+} else {
+    println 'No signing secrets found, build will not be signed.'
 }
 
-version = "${project.config.mod_version}." + (System.getenv("BUILD_NUMBER") ?: "1")
+version = "$version." + (System.getenv("BUILD_NUMBER") ?: "1")
+println "Starting build of ${archivesBaseName}, Version: ${version}"
 
-println config.mc_version + "-" + config.forge_version
-// Setup the forge minecraft plugin data. Specify the preferred forge/minecraft version here
-minecraft {
-	version = config.mc_version + "-" + config.forge_version
-	mappings = config.mappings
-	runDir = "run"
-	replace '${mod_version}', project.config.mod_version
-	makeObfSourceJar = false
+repositories {
+    mavenLocal()
+    jcenter()
+    mavenCentral()
+    maven { url "http://chickenbones.net/maven" }
+    maven { url "https://files.minecraftforge.net/maven" }
 }
 
-version = "${project.minecraft.version}-${project.version}"
+sourceSets {
+    modlauncher
+}
 
-def commonManifest = {
-	attributes 'TweakClass': 'codechicken.asm.internal.Tweaker'
-	attributes 'Maven-Artifact': "${project.group}:${project.archivesBaseName}:${project.version}"
+configurations {
+    shadow
+    implementation.extendsFrom shadow
+    modlauncherImplementation.extendsFrom implementation
+}
+
+dependencies {
+    //Exists in our target environment.
+    implementation 'org.ow2.asm:asm:7.2'
+    implementation 'org.ow2.asm:asm-tree:7.2'
+    implementation 'org.ow2.asm:asm-commons:7.2'
+    implementation 'com.google.code.findbugs:jsr305:3.0.2'
+    implementation 'com.google.guava:guava:21.0'
+    implementation 'commons-io:commons-io:2.5'
+    implementation 'org.apache.logging.log4j:log4j-api:2.12.1'
+
+    //Shadow this in.
+    shadow('org.ow2.asm:asm-util:7.2') {
+        transitive false
+    }
+
+    //ModLauncher compat
+    modlauncherCompileOnly sourceSets.main.output
+    modlauncherCompileOnly('cpw.mods:modlauncher:5.1.0') {
+        transitive false
+    }
 }
 
 jar {
-	manifest commonManifest
+    classifier 'base'
+}
+
+shadowJar {
+    classifier ''
+    manifest {
+        attributes 'Specification-Title': archivesBaseName
+        attributes 'Specification-Vendor': 'covers1624'
+        attributes 'Specification-Version': "1"
+        attributes 'Implementation-Title': archivesBaseName
+        attributes 'Implementation-Vendor': 'covers1624'
+        attributes 'Implementation-Version': version
+        attributes 'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+
+        attributes 'FMLModType': 'LIBRARY'
+        attributes 'Maven-Artifact': "${project.group}:${project.archivesBaseName}:${project.version}"
+    }
+    relocate 'org.objectweb.asm.util', 'codechicken.repack.org.objectweb.asm.util'
+
+    configurations = [project.configurations.shadow]
+    exclude 'module-info.class'
+}
+
+task modLauncherJar(type: Jar) {
+    classifier 'modlauncher'
+    dependsOn compileModlauncherJava
+    from sourceSets.modlauncher.output
+    manifest {
+        attributes 'FMLModType': 'LIBRARY'
+    }
+}
+
+[shadowJar, modLauncherJar].each { baseTask ->
+    def sTask = "sign${baseTask.name.capitalize()}"
+    baseTask.finalizedBy sTask
+    task "$sTask"(type: net.minecraftforge.gradle.common.task.SignJar) {
+        onlyIf { !signProps.isEmpty() }
+
+        if (!signProps.isEmpty()) {
+            keyStore = signProps.keyStore
+            alias = signProps.alias
+            storePass = signProps.storePass
+            keyPass = signProps.keyPass
+
+            inputFile = baseTask.archivePath
+            outputFile = baseTask.archivePath
+        }
+    }
 }
 
 task srcJar(type: Jar) {
-	from sourceSets.main.allSource
-	classifier = 'sources'
+    classifier 'sources'
+    from sourceSets.main.allSource
+    from sourceSets.modlauncher.allSource
 }
 
-task signJar(type: SignJar, dependsOn: reobfJar) {
-	onlyIf { // Skip the task if our secret data isn't available
-		project.hasProperty('keyStore')
-	}
+publishing {
+    repositories {
+        if (System.getenv('MAVEN_PASS')) {
+            maven {
+                url "https://maven-upload.covers1624.net/"
+                credentials {
+                    username 'covers1624'
+                    password System.getenv('MAVEN_PASS')
+                }
+            }
+        }
+    }
+    publications {
+        ChickenASM(MavenPublication) {
+            groupId project.group
+            artifactId project.archivesBaseName
+            version project.version
+            artifact shadowJar
+            artifact srcJar
+            artifact modLauncherJar
 
-	if (project.hasProperty('keyStore')) {
-		keyStore = project.keyStore // This needs to be a path to the keystore file
-		alias = project.keyStoreAlias
-		storePass = project.keyStorePass
-		keyPass = project.keyStoreKeyPass
-		inputFile = jar.archivePath
-		outputFile = jar.archivePath
-	}
-}
+            pom {
+                name = archivesBaseName
+                description = archivesBaseName
+                //The publish plugin doesnt like GString's here apparently..
+                url = "https://github.com/TheCBProject/${archivesBaseName}".toString()
+                scm {
+                    url = "https://github.com/TheCBProject/${archivesBaseName}".toString()
+                    connection = "scm:git:git://github.com/TheCBProject/${archivesBaseName}.git".toString()
+                    connection = "scm:git:git@github.com:TheCBProject/${archivesBaseName}.git".toString()
+                }
 
-build.dependsOn signJar
-
-// Tell the artifact system about our extra jars
-artifacts {
-	archives srcJar
-}
-
-// Configure an upload task.
-uploadArchives {
-	repositories {
-		mavenDeployer {
-			if (project.hasProperty("local_maven") || project.hasProperty("maven_pass")) {
-				if (project.hasProperty("maven_pass")) {
-					println "Uploading to remote maven."
-					repository(url: "http://maven_upload.covers1624.net/") {
-						authentication(userName: "covers1624", password: project.getProperty("maven_pass"))
-					}
-				} else {
-					println "Uploading to local maven."
-					repository(url: "file://${local_maven}")
-				}
-				pom {
-					groupId = project.group
-					// Force the maven upload to use the <mcversion>-<version> syntax preferred at files
-					artifactId = project.archivesBaseName
-					project {
-						name project.archivesBaseName
-						packaging 'jar'
-						description 'ChickenASM'
-						url 'https://github.com/TheCBProject/ChickenASM'
-
-						scm {
-							url 'https://github.com/TheCBProject/ChickenASM'
-							connection 'scm:git:git://github.com/TheCBProject/ChickenASM.git'
-							developerConnection 'scm:git:git@github.com:TheCBProject/ChickenASM.git'
-						}
-
-						issueManagement {
-							system 'github'
-							url 'https://github.com/TheCBProject/ChickenASM/issues'
-						}
-
-						licenses {
-							license {
-								name 'GNU Lesser Public License (GPL), Version 2.1'
-								url 'https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt'
-								distribution 'repo'
-							}
-						}
-
-						developers {
-							developer {
-								id 'chicken-bones'
-								name 'chicken-bones'
-								roles { role 'developer' }
-							}
-							developer {
-								id 'covers1624'
-								name 'covers1624'
-								roles { role 'developer' }
-							}
-						}
-					}
-				}
-			}
-		}
-	}
+                issueManagement {
+                    system = 'github'
+                    url = "https://github.com/TheCBProject/${archivesBaseName}/issues".toString()
+                }
+                licenses {
+                    license {
+                        name = "GNU Lesser Public License (GPL), Version 2.1"
+                        url = "https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt"
+                        distribution = 'repo'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'covers1624'
+                        name = 'covers1624'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'chicken-bones'
+                        name = 'chicken-bones'
+                    }
+                }
+            }
+        }
+    }
 }

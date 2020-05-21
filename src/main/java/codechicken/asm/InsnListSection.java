@@ -20,26 +20,6 @@ import static org.objectweb.asm.tree.AbstractInsnNode.*;
  */
 public class InsnListSection implements Iterable<AbstractInsnNode> {
 
-    private class InsnListSectionIterator implements Iterator<AbstractInsnNode> {
-
-        int i = 0;
-
-        @Override
-        public boolean hasNext() {
-            return i < size();
-        }
-
-        @Override
-        public AbstractInsnNode next() {
-            return get(i++);
-        }
-
-        @Override
-        public void remove() {
-            InsnListSection.this.remove(--i);
-        }
-    }
-
     public InsnList list;
     public int start;
     public int end;
@@ -255,5 +235,25 @@ public class InsnListSection implements Iterable<AbstractInsnNode> {
     @Override
     public Iterator<AbstractInsnNode> iterator() {
         return new InsnListSectionIterator();
+    }
+
+    private class InsnListSectionIterator implements Iterator<AbstractInsnNode> {
+
+        int i = 0;
+
+        @Override
+        public boolean hasNext() {
+            return i < size();
+        }
+
+        @Override
+        public AbstractInsnNode next() {
+            return get(i++);
+        }
+
+        @Override
+        public void remove() {
+            InsnListSection.this.remove(--i);
+        }
     }
 }

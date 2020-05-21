@@ -2,6 +2,8 @@ package codechicken.asm;
 
 import codechicken.asm.transformers.ClassNodeTransformer;
 import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.tree.ClassNode;
@@ -17,7 +19,6 @@ import java.util.List;
 
 import static codechicken.asm.ASMHelper.createBytes;
 import static codechicken.asm.ASMHelper.dump;
-import static codechicken.asm.ASMHelper.logger;
 
 public class ModularASMTransformer {
 
@@ -26,16 +27,17 @@ public class ModularASMTransformer {
     //The format in which to dump the transformed classes.
     public static final boolean DUMP_RAW = Boolean.parseBoolean(System.getProperty("ccl.asm.debug.dump_raw", "false")) && DEBUG;
     public static final boolean DUMP_TEXT = Boolean.parseBoolean(System.getProperty("ccl.asm.debug.dump_text", "false")) && DEBUG;
-    public static final File dumpFolderBase = new File("asm/ccl_modular/");
+    private static final Logger logger = LogManager.getLogger();
+    public static final Level LEVEL = DEBUG ? Level.INFO : Level.DEBUG;
 
     public File dumpFolder;
 
     public HashMap<String, ClassNodeTransformerList> transformers = new HashMap<>();
     public String name;
 
-    public ModularASMTransformer(String name) {
+    public ModularASMTransformer(File dumpFolder, String name) {
         this.name = name;
-        dumpFolder = new File(dumpFolderBase, name);
+        this.dumpFolder = dumpFolder;
     }
 
     /**
@@ -64,15 +66,6 @@ public class ModularASMTransformer {
 
         ClassNodeTransformerList list = transformers.get(name);
         return list == null ? bytes : list.transform(bytes);
-    }
-
-    public static void log(Object object) {
-        log(String.valueOf(object), "");
-    }
-
-    public static void log(String format, Object... params) {
-        Level level = DEBUG ? Level.INFO : Level.DEBUG;
-        logger.log(level, String.format(format, params));
     }
 
     /**
@@ -107,7 +100,7 @@ public class ModularASMTransformer {
 
                 bytes = createBytes(cnode, writeFlags);
                 if (DUMP_RAW) {
-                    File file = new File(dumpFolder, cnode.name.replace('/', '#') + ".class");
+                    File file = new File(dumpFolder, cnode.name.replace('/', '.') + ".class");
                     if (!file.exists()) {
                         if (!file.getParentFile().exists()) {
                             file.getParentFile().mkdirs();
@@ -119,11 +112,11 @@ public class ModularASMTransformer {
                     fos.flush();
                     fos.close();
                 } else if (DUMP_TEXT) {
-                    dump(bytes, new File(dumpFolder, cnode.name.replace('/', '#') + ".txt"), false, false);
+                    dump(bytes, new File(dumpFolder, cnode.name.replace('/', '.') + ".txt"), false, false, true);
                 }
                 return bytes;
             } catch (Exception e) {
-                dump(bytes, new File(dumpFolder, cnode.name.replace('/', '#') + ".txt"), false, false);
+                dump(bytes, new File(dumpFolder, cnode.name.replace('/', '.') + ".txt"), false, false, true);
                 throw new RuntimeException(e);
             }
         }
