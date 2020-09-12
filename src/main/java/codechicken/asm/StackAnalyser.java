@@ -2,6 +2,8 @@ package codechicken.asm;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.objectweb.asm.ConstantDynamic;
+import org.objectweb.asm.Handle;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
 
@@ -286,6 +288,11 @@ public class StackAnalyser {
                 }
                 break;
             }
+            case INVOKE_DYNAMIC_INSN: {
+                InvokeDynamicInsnNode insn = (InvokeDynamicInsnNode) aInsn;
+                push(new InvokeDynamic(insn, popArgs(insn.desc)));
+                break;
+            }
             case TYPE_INSN: {
                 TypeInsnNode insn = (TypeInsnNode) aInsn;
                 switch (insn.getOpcode()) {
@@ -348,7 +355,7 @@ public class StackAnalyser {
             case LABEL: {
                 LabelNode insn = (LabelNode) aInsn;
                 TryCatchBlockNode handlerNode = catchHandlers.get(insn);
-                if (handlerNode != null) {
+                if (handlerNode != null && handlerNode.type != null) {
                     push(new CaughtException(insn, Type.getObjectType(handlerNode.type)));
                 }
                 break;
@@ -498,9 +505,22 @@ public class StackAnalyser {
             return Type.getObjectType("java/lang/String");
         } else if (obj == null) {
             return Type.getObjectType("java/lang/Object");
-        } else {
-            throw new IllegalArgumentException("Unknown const: " + obj);
+        } else if (obj instanceof Type) {
+            int sort = ((Type) obj).getSort();
+            if (sort == OBJECT || sort == ARRAY) {
+                return Type.getObjectType("java/lang/Class");
+            } else if (sort == METHOD) {
+                return Type.getObjectType("java/lang/invoke/MethodType");
+            } else {
+                throw new IllegalArgumentException("Invalid Type const: " + obj);
+            }
+        } else if (obj instanceof Handle) {
+            return Type.getObjectType("java/lang/invoke/MethodHandle");
+        } else if (obj instanceof ConstantDynamic) {
+            throw new IllegalArgumentException("ConstantDynamic currently not supported.");
         }
+
+        throw new IllegalArgumentException("Unknown const: " + obj);
     }
 
     public static abstract class Entry {
@@ -654,6 +674,22 @@ public class StackAnalyser {
             this.op = op;
             this.params = params;
             this.obj = obj;
+        }
+    }
+
+    public static class InvokeDynamic extends StackEntry {
+
+        public final int op;
+        public final List<StackEntry> params;
+
+        public InvokeDynamic(InvokeDynamicInsnNode method, List<StackEntry> params) {
+            this(method, method.getOpcode(), params);
+        }
+
+        public InvokeDynamic(InvokeDynamicInsnNode method, int op, List<StackEntry> params) {
+            super(method, Type.getReturnType(method.desc));
+            this.op = op;
+            this.params = params;
         }
     }
 
