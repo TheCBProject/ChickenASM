@@ -6,6 +6,8 @@ import cpw.mods.modlauncher.TransformingClassLoader;
 import cpw.mods.modlauncher.api.INameMappingService;
 import org.objectweb.asm.commons.Remapper;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -16,11 +18,14 @@ import java.util.function.BiFunction;
 public class ModLauncherExtension implements EnvironmentExtension {
 
     private static final TransformingClassLoader cl = (TransformingClassLoader) Thread.currentThread().getContextClassLoader();
-    private static final Method m_buildTransformedClassNodeFor;
+    private static final MethodHandle m_buildTransformedClassNodeFor;
 
     static {
         try {
-            m_buildTransformedClassNodeFor = TransformingClassLoader.class.getDeclaredMethod("buildTransformedClassNodeFor", String.class, String.class);
+            MethodHandles.Lookup lookup = MethodHandles.lookup();
+            Method m = TransformingClassLoader.class.getDeclaredMethod("buildTransformedClassNodeFor", String.class, String.class);
+            m.setAccessible(true);
+            m_buildTransformedClassNodeFor = lookup.unreflect(m);
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
