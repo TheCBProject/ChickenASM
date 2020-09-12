@@ -1,18 +1,8 @@
-buildscript {
-    repositories {
-        mavenLocal()
-        jcenter()
-        mavenCentral()
-        maven { url = "https://files.minecraftforge.net/maven" }
-    }
-    dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:3.+' //Here for sign task :D
-    }
-}
 plugins {
     id 'java'
     id 'maven-publish'
     id 'com.github.johnrengelman.shadow' version '5.2.0'
+    id "net.covers1624.signing" version '1.0.0.1'
 }
 
 group = "codechicken"
@@ -69,7 +59,6 @@ dependencies {
     implementation 'org.ow2.asm:asm-commons:7.2'
     implementation 'com.google.code.findbugs:jsr305:3.0.2'
     implementation 'com.google.guava:guava:21.0'
-    implementation 'commons-io:commons-io:2.5'
     implementation 'org.apache.logging.log4j:log4j-api:2.12.1'
 
     //Shadow this in.
@@ -81,6 +70,20 @@ dependencies {
     modlauncherCompileOnly sourceSets.main.output
     modlauncherCompileOnly('cpw.mods:modlauncher:5.1.0') {
         transitive false
+    }
+}
+
+signing {
+    if (!signProps.empty) {
+        jars {
+            sign shadowJar
+            sign modLauncherJar
+
+            keyStore = signProps.keyStore
+            alias = signProps.alias
+            storePass = signProps.storePass
+            keyPass = signProps.keyPass
+        }
     }
 }
 
@@ -96,7 +99,7 @@ shadowJar {
         attributes 'Specification-Version': "1"
         attributes 'Implementation-Title': archivesBaseName
         attributes 'Implementation-Vendor': 'covers1624'
-        attributes 'Implementation-Version': version
+        attributes 'Implementation-Version': archiveVersion
         attributes 'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
 
         attributes 'FMLModType': 'LIBRARY'
@@ -114,24 +117,6 @@ task modLauncherJar(type: Jar) {
     from sourceSets.modlauncher.output
     manifest {
         attributes 'FMLModType': 'LIBRARY'
-    }
-}
-
-[shadowJar, modLauncherJar].each { baseTask ->
-    def sTask = "sign${baseTask.name.capitalize()}"
-    baseTask.finalizedBy sTask
-    task "$sTask"(type: net.minecraftforge.gradle.common.task.SignJar) {
-        onlyIf { !signProps.isEmpty() }
-
-        if (!signProps.isEmpty()) {
-            keyStore = signProps.keyStore
-            alias = signProps.alias
-            storePass = signProps.storePass
-            keyPass = signProps.keyPass
-
-            inputFile = baseTask.archivePath
-            outputFile = baseTask.archivePath
-        }
     }
 }
 
