@@ -1,0 +1,8 @@
+rootProject.name = 'ChickenASM'
+
+include 'core'
+include 'modlauncher'
+
+rootProject.children.each {
+    it.projectDir = file("subprojects/${it.name}")
+}

@@ -29,7 +29,7 @@ public class StackAnalyser {
     }
 
     public static int width(String type) {
-        return width(Type.getType(type));
+        return width(getType(type));
     }
 
     public static int width(Iterable<Type> it) {
@@ -62,7 +62,7 @@ public class StackAnalyser {
             pushL(new This(owner));
         }
 
-        Type[] pTypes = Type.getArgumentTypes(mNode.desc);
+        Type[] pTypes = getArgumentTypes(mNode.desc);
         for (int i = 0; i < pTypes.length; i++) {
             pushL(new Param(pTypes[i], i));
         }
@@ -132,7 +132,7 @@ public class StackAnalyser {
     }
 
     public List<StackEntry> popArgs(String desc) {
-        int len = Type.getArgumentTypes(desc).length;
+        int len = getArgumentTypes(desc).length;
         StackEntry[] args = new StackEntry[len];
         for (int i = 0; i < len; i++) {
             args[len - i - 1] = pop();
@@ -356,7 +356,7 @@ public class StackAnalyser {
                 LabelNode insn = (LabelNode) aInsn;
                 TryCatchBlockNode handlerNode = catchHandlers.get(insn);
                 if (handlerNode != null && handlerNode.type != null) {
-                    push(new CaughtException(insn, Type.getObjectType(handlerNode.type)));
+                    push(new CaughtException(insn, getObjectType(handlerNode.type)));
                 }
                 break;
             }
@@ -486,36 +486,36 @@ public class StackAnalyser {
 
     private static Type computeConstType(Object obj) {
         if (obj instanceof Byte) {
-            return Type.BYTE_TYPE;
+            return BYTE_TYPE;
         } else if (obj instanceof Short) {
-            return Type.SHORT_TYPE;
+            return SHORT_TYPE;
         } else if (obj instanceof Integer) {
-            return Type.INT_TYPE;
+            return INT_TYPE;
         } else if (obj instanceof Long) {
-            return Type.LONG_TYPE;
+            return LONG_TYPE;
         } else if (obj instanceof Float) {
-            return Type.FLOAT_TYPE;
+            return FLOAT_TYPE;
         } else if (obj instanceof Double) {
-            return Type.DOUBLE_TYPE;
+            return DOUBLE_TYPE;
         } else if (obj instanceof Character) {
-            return Type.CHAR_TYPE;
+            return CHAR_TYPE;
         } else if (obj instanceof Boolean) {
-            return Type.BOOLEAN_TYPE;
+            return BOOLEAN_TYPE;
         } else if (obj instanceof String) {
-            return Type.getObjectType("java/lang/String");
+            return getObjectType("java/lang/String");
         } else if (obj == null) {
-            return Type.getObjectType("java/lang/Object");
+            return getObjectType("java/lang/Object");
         } else if (obj instanceof Type) {
             int sort = ((Type) obj).getSort();
             if (sort == OBJECT || sort == ARRAY) {
-                return Type.getObjectType("java/lang/Class");
+                return getObjectType("java/lang/Class");
             } else if (sort == METHOD) {
-                return Type.getObjectType("java/lang/invoke/MethodType");
+                return getObjectType("java/lang/invoke/MethodType");
             } else {
                 throw new IllegalArgumentException("Invalid Type const: " + obj);
             }
         } else if (obj instanceof Handle) {
-            return Type.getObjectType("java/lang/invoke/MethodHandle");
+            return getObjectType("java/lang/invoke/MethodHandle");
         } else if (obj instanceof ConstantDynamic) {
             throw new IllegalArgumentException("ConstantDynamic currently not supported.");
         }
@@ -643,7 +643,7 @@ public class StackAnalyser {
     public static class ReturnAddress extends StackEntry {
 
         public ReturnAddress(AbstractInsnNode insn) {
-            super(insn, Type.INT_TYPE);
+            super(insn, INT_TYPE);
         }
     }
 
@@ -653,7 +653,7 @@ public class StackAnalyser {
         public final StackEntry obj;
 
         public GetField(FieldInsnNode field, StackEntry obj) {
-            super(field, Type.getType(field.desc));
+            super(field, getType(field.desc));
             this.obj = obj;
             this.field = field;
         }
@@ -670,7 +670,7 @@ public class StackAnalyser {
         }
 
         public Invoke(MethodInsnNode method, int op, List<StackEntry> params, StackEntry obj) {
-            super(method, Type.getReturnType(method.desc));
+            super(method, getReturnType(method.desc));
             this.op = op;
             this.params = params;
             this.obj = obj;
@@ -687,7 +687,7 @@ public class StackAnalyser {
         }
 
         public InvokeDynamic(InvokeDynamicInsnNode method, int op, List<StackEntry> params) {
-            super(method, Type.getReturnType(method.desc));
+            super(method, getReturnType(method.desc));
             this.op = op;
             this.params = params;
         }
@@ -715,7 +715,7 @@ public class StackAnalyser {
         public final StackEntry array;
 
         public ArrayLength(AbstractInsnNode insn, StackEntry array) {
-            super(insn, Type.INT_TYPE);
+            super(insn, INT_TYPE);
             this.array = array;
         }
     }

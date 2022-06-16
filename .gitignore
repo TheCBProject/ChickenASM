@@ -22,6 +22,4 @@
 !.gitignore
 
 # Include Important Folders
-!src/
-!libs/
-!archive
+!subprojects/

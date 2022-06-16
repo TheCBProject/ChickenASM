@@ -1,234 +1,74 @@
-plugins {
-    id 'java'
-    id 'maven-publish'
-    id 'com.github.johnrengelman.shadow' version '5.2.0'
-    id "net.covers1624.signing" version '1.0.0.1'
-}
-
-group = "codechicken"
-archivesBaseName = "ChickenASM"
-version = '2.0.1'
-
-targetCompatibility = "1.8"
-sourceCompatibility = "1.8"
-
-def signProps = [:]
-if (System.getenv("KEY_STORE")) {
-    println "Using Env variables for jar signing."
-    signProps['keyStore'] = System.getenv("KEY_STORE")
-    file(System.getenv("KEY_STORE_PROPS")).withReader {
-        def props = new Properties()
-        props.load(it)
-        signProps.putAll(props)
-    }
-} else if (project.hasProperty('keyStore')) {
-    println "Using Project properties for jar signing."
-    signProps['keyStore'] = project.getProperty('keyStore')
-    signProps['storePass'] = project.getProperty('keyStorePass')
-    signProps['alias'] = project.getProperty('keyStoreAlias')
-    signProps['keyPass'] = project.getProperty('keyStoreKeyPass')
-} else {
-    println 'No signing secrets found, build will not be signed.'
-}
+group "codechicken"
+version = '3.1.0'
 
 version = "$version." + (System.getenv("BUILD_NUMBER") ?: "1")
-println "Starting build of ${archivesBaseName}, Version: ${version}"
+println "Starting build of ${name}, Version: ${version}"
 
-repositories {
-    mavenLocal()
-    jcenter()
-    mavenCentral()
-    maven { url "https://chickenbones.net/maven" }
-    maven { url "https://files.minecraftforge.net/maven" }
-}
+subprojects { subProject ->
+    apply plugin: 'java'
+    apply plugin: 'java-library'
+    apply plugin: 'maven-publish'
 
-sourceSets {
-    modlauncher
-}
-
-configurations {
-    shadow
-    implementation.extendsFrom shadow
-    modlauncherImplementation.extendsFrom implementation
-}
-
-dependencies {
-    //Exists in our target environment.
-    implementation 'org.ow2.asm:asm:7.2'
-    implementation 'org.ow2.asm:asm-tree:7.2'
-    implementation 'org.ow2.asm:asm-commons:7.2'
-    implementation 'com.google.code.findbugs:jsr305:3.0.2'
-    implementation 'com.google.guava:guava:21.0'
-    implementation 'org.apache.logging.log4j:log4j-api:2.12.1'
-
-    //Shadow this in.
-    shadow('org.ow2.asm:asm-util:7.2') {
-        transitive false
-    }
-
-    //ModLauncher compat
-    modlauncherCompileOnly sourceSets.main.output
-    modlauncherCompileOnly('cpw.mods:modlauncher:5.1.0') {
-        transitive false
-    }
-}
-
-signing {
-    if (!signProps.empty) {
-        jars {
-            sign shadowJar
-            sign modLauncherJar
-
-            keyStore = signProps.keyStore
-            alias = signProps.alias
-            storePass = signProps.storePass
-            keyPass = signProps.keyPass
-        }
-    }
-}
-
-jar {
-    classifier 'base'
-}
-
-shadowJar {
-    classifier ''
-    manifest {
-        attributes 'Specification-Title': archivesBaseName
-        attributes 'Specification-Vendor': 'covers1624'
-        attributes 'Specification-Version': "1"
-        attributes 'Implementation-Title': archivesBaseName
-        attributes 'Implementation-Vendor': 'covers1624'
-        attributes 'Implementation-Version': archiveVersion
-        attributes 'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
-
-        attributes 'FMLModType': 'LIBRARY'
-        attributes 'Maven-Artifact': "${project.group}:${project.archivesBaseName}:${project.version}"
-    }
-    relocate 'org.objectweb.asm.util', 'codechicken.repack.org.objectweb.asm.util'
-
-    configurations = [project.configurations.shadow]
-    exclude 'module-info.class'
-}
-
-task modLauncherJar(type: Jar) {
-    classifier 'modlauncher'
-    dependsOn compileModlauncherJava
-    from sourceSets.modlauncher.output
-    manifest {
-        attributes 'FMLModType': 'LIBRARY'
-    }
-}
-
-task srcJar(type: Jar) {
-    classifier 'sources'
-    from sourceSets.main.allSource
-    from sourceSets.modlauncher.allSource
-}
-
-publishing {
     repositories {
-        if (System.getenv('MAVEN_PASS')) {
-            maven {
-                url "https://maven-upload.covers1624.net/"
-                credentials {
-                    username 'covers1624'
-                    password System.getenv('MAVEN_PASS')
-                }
-            }
-        }
+        mavenLocal()
+        jcenter()
+        mavenCentral()
+        maven { url "https://maven.covers1624.net/" }
+        maven { url "https://maven.minecraftforge.net/" }
     }
-    publications {
-        ChickenASM(MavenPublication) {
-            groupId project.group
-            artifactId project.archivesBaseName
-            version project.version
-            addDeps(it, configurations.implementation)
-            artifact shadowJar
-            artifact srcJar
-            artifact modLauncherJar
 
-            pom {
-                name = archivesBaseName
-                description = archivesBaseName
-                //The publish plugin doesnt like GString's here apparently..
-                url = "https://github.com/TheCBProject/${archivesBaseName}".toString()
-                scm {
-                    url = "https://github.com/TheCBProject/${archivesBaseName}".toString()
-                    connection = "scm:git:git://github.com/TheCBProject/${archivesBaseName}.git".toString()
-                    connection = "scm:git:git@github.com:TheCBProject/${archivesBaseName}.git".toString()
-                }
-
-                issueManagement {
-                    system = 'github'
-                    url = "https://github.com/TheCBProject/${archivesBaseName}/issues".toString()
-                }
-                licenses {
-                    license {
-                        name = "GNU Lesser Public License (GPL), Version 2.1"
-                        url = "https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt"
-                        distribution = 'repo'
-                    }
-                }
-                developers {
-                    developer {
-                        id = 'covers1624'
-                        name = 'covers1624'
-                    }
-                }
-                developers {
-                    developer {
-                        id = 'chicken-bones'
-                        name = 'chicken-bones'
+    publishing {
+        repositories {
+            if (System.getenv('MAVEN_PASS')) {
+                maven {
+                    url "https://nexus.covers1624.net/repository/maven-releases/"
+                    credentials {
+                        username 'covers1624'
+                        password System.getenv('MAVEN_PASS')
                     }
                 }
             }
         }
-    }
-}
+        publications {
+            publication(MavenPublication) {
+                group = rootProject.group
+                version = rootProject.version
 
-def addDeps(MavenPublication publication, Configuration configuration, boolean transitive = true, String scope = 'compile') {
-    publication.pom { pom ->
-        pom.withXml { xml ->
-            def rootNode = xml.asNode().appendNode('dependencies')
+                pom {
+                    name = archivesBaseName
+                    description = archivesBaseName
+                    url = "https://github.com/TheCBProject/${archivesBaseName}"
+                    scm {
+                        url = "https://github.com/TheCBProject/${archivesBaseName}"
+                        connection = "scm:git:git://github.com/TheCBProject/${archivesBaseName}.git"
+                        connection = "scm:git:git@github.com:TheCBProject/${archivesBaseName}.git"
+                    }
 
-            DependencySet deps = transitive ? configuration.allDependencies : configuration.dependencies
-            deps.each {
-                if (it instanceof ModuleDependency) {
-                    ModuleDependency moduleDep = (ModuleDependency) it
-                    Set<DependencyArtifact> artifacts = moduleDep.getArtifacts()
-                    if (!artifacts.empty) {
-                        artifacts.each {
-                            def node = addDependency(rootNode, moduleDep, scope)
-                            if (it.classifier) {
-                                node.appendNode('classifier', it.classifier)
-                            }
-                            if (it.type && it.type != DependencyArtifact.DEFAULT_TYPE) {
-                                node.appendNode('type', it.type)
-                            }
+                    issueManagement {
+                        system = 'github'
+                        url = "https://github.com/TheCBProject/${archivesBaseName}/issues"
+                    }
+                    licenses {
+                        license {
+                            name = "GNU Lesser Public License (GPL), Version 2.1"
+                            url = "https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt"
+                            distribution = 'repo'
                         }
-                    } else {
-                        addDependency(rootNode, moduleDep, scope)
                     }
-                } else if (it instanceof ProjectDependency || !(it instanceof SelfResolvingDependency)) {
-                    addDependency(rootNode, it, scope)
+                    developers {
+                        developer {
+                            id = 'covers1624'
+                            name = 'covers1624'
+                        }
+                    }
+                    developers {
+                        developer {
+                            id = 'chicken-bones'
+                            name = 'chicken-bones'
+                        }
+                    }
                 }
             }
         }
     }
-}
-
-def addDependency(Node rootNode, Dependency dep, String scope) {
-    def node = rootNode.appendNode('dependency')
-    if (!dep.version || dep.version.empty) {
-        throw new IllegalArgumentException("Empty version for dependency '${dep}'")
-    }
-    if (dep.version.endsWith("+")) {
-        throw new IllegalArgumentException("Incomplete version for dependency '${dep}'")
-    }
-    node.appendNode('groupId', dep.group)
-    node.appendNode('artifactId', dep.name)
-    node.appendNode('version', dep.version)
-    node.appendNode('scope', scope)
-    return node
 }
