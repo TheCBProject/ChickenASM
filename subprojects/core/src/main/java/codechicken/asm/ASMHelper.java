@@ -1,7 +1,5 @@
 package codechicken.asm;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -9,6 +7,8 @@ import org.objectweb.asm.tree.*;
 import org.objectweb.asm.util.ASMifier;
 import org.objectweb.asm.util.Textifier;
 import org.objectweb.asm.util.TraceClassVisitor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,7 +20,7 @@ import java.util.Map;
 
 public class ASMHelper {
 
-    public static Logger logger = LogManager.getLogger();
+    private static final Logger LOGGER = LoggerFactory.getLogger(ASMHelper.class);
 
     public static MethodNode findMethod(ObfMapping methodmap, ClassNode cnode) {
         for (MethodNode mnode : cnode.methods) {
@@ -148,7 +148,7 @@ public class ASMHelper {
             acceptor.accept(cv);
             pout.close();
         } catch (IOException e) {
-            logger.fatal("Fatal exception occurred whilst trying to dump ASM to file!", e);
+            LOGGER.warn("Failed to dump class to file!", e);
         }
     }
 

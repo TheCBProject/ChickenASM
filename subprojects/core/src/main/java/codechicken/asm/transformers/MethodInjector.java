@@ -1,19 +1,14 @@
 package codechicken.asm.transformers;
 
-import codechicken.asm.ASMBlock;
-import codechicken.asm.InsnComparator;
-import codechicken.asm.InsnListSection;
-import codechicken.asm.ObfMapping;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import codechicken.asm.*;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.MethodNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Set;
-
-import static codechicken.asm.ModularASMTransformer.LEVEL;
 
 /**
  * Injects a call before or after the needle.
@@ -21,7 +16,7 @@ import static codechicken.asm.ModularASMTransformer.LEVEL;
  */
 public class MethodInjector extends MethodTransformer {
 
-    private static final Logger logger = LogManager.getLogger();
+    private static final Logger LOGGER = LoggerFactory.getLogger(MethodInjector.class);
 
     @Nullable
     public ASMBlock needle;
@@ -86,7 +81,11 @@ public class MethodInjector extends MethodTransformer {
     @Override
     public void transform(MethodNode mv) {
         if (needle == null) {
-            logger.log(LEVEL, "Injecting {} method '{}'", before ? "before" : "after", method);
+            if (ModularASMTransformer.DEBUG) {
+                LOGGER.info("Injecting {} method '{}'", before ? "before" : "after", method);
+            } else {
+                LOGGER.debug("Injecting {} method '{}'", before ? "before" : "after", method);
+            }
             if (before) {
                 mv.instructions.insert(injection.rawListCopy());
             } else {
@@ -94,7 +93,11 @@ public class MethodInjector extends MethodTransformer {
             }
         } else {
             for (InsnListSection key : InsnComparator.findN(mv.instructions, needle.list)) {
-                logger.log(LEVEL, "Injecting {} method '{}' @ {} - {}", before ? "before" : "after", method, key.start, key.end);
+                if (ModularASMTransformer.DEBUG) {
+                    LOGGER.info("Injecting {} method '{}' @ {} - {}", before ? "before" : "after", method, key.start, key.end);
+                } else {
+                    LOGGER.debug("Injecting {} method '{}' @ {} - {}", before ? "before" : "after", method, key.start, key.end);
+                }
                 ASMBlock injectBlock = injection.copy().mergeLabels(needle.applyLabels(key));
 
                 if (before) {

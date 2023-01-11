@@ -1,14 +1,13 @@
 package codechicken.asm.transformers;
 
+import codechicken.asm.ModularASMTransformer;
 import codechicken.asm.ObfMapping;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.objectweb.asm.tree.ClassNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
-import static codechicken.asm.ModularASMTransformer.LEVEL;
 
 /**
  * Writes a field to a class.
@@ -16,7 +15,7 @@ import static codechicken.asm.ModularASMTransformer.LEVEL;
  */
 public class FieldWriter extends ClassNodeTransformer {
 
-    private static final Logger logger = LogManager.getLogger();
+    private static final Logger LOGGER = LoggerFactory.getLogger(FieldWriter.class);
 
     public final ObfMapping field;
     public final int access;
@@ -52,7 +51,11 @@ public class FieldWriter extends ClassNodeTransformer {
 
     @Override
     public void transform(ClassNode cNode) {
-        logger.log(LEVEL, "Writing field '{}' to class '{}'.", field, cNode.name);
+        if (ModularASMTransformer.DEBUG) {
+            LOGGER.info("Writing field '{}' to class '{}'.", field, cNode.name);
+        } else {
+            LOGGER.debug("Writing field '{}' to class '{}'.", field, cNode.name);
+        }
         field.visitField(cNode, access, value);
     }
 }

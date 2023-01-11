@@ -1,25 +1,25 @@
 package codechicken.asm.transformers;
 
 import codechicken.asm.ASMBlock;
+import codechicken.asm.ModularASMTransformer;
 import codechicken.asm.ObfMapping;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.MethodNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import static codechicken.asm.ASMHelper.findMethod;
-import static codechicken.asm.ModularASMTransformer.LEVEL;
 
 /**
  * Writes a method containing the provided InsnList with the ObfMapping as the method name and desc.
  */
 public class MethodWriter extends ClassNodeTransformer {
 
-    private static final Logger logger = LogManager.getLogger();
+    private static final Logger LOGGER = LoggerFactory.getLogger(MethodWriter.class);
 
     public final int access;
     public final ObfMapping method;
@@ -121,7 +121,11 @@ public class MethodWriter extends ClassNodeTransformer {
     }
 
     public void write(MethodNode mv) {
-        logger.log(LEVEL, "Writing method '{}'.", method);
+        if (ModularASMTransformer.DEBUG) {
+            LOGGER.info("Writing method '{}'.", method);
+        } else {
+            LOGGER.debug("Writing method '{}'.", method);
+        }
         list.accept(mv);
     }
 }

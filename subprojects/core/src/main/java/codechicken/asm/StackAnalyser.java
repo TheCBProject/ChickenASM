@@ -1,11 +1,11 @@
 package codechicken.asm;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.objectweb.asm.ConstantDynamic;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.stream.Stream;
@@ -22,7 +22,7 @@ public class StackAnalyser {
 
     private static final boolean DEBUG = Boolean.getBoolean("codechicken.mixin.StackAnalyser.debug");
     private static final boolean DEBUG_FRAMES = Boolean.getBoolean("codechicken.mixin.StackAnalyser.debug_frames");
-    private static final Logger logger = LogManager.getLogger();
+    private static final Logger LOGGER = LoggerFactory.getLogger(StackAnalyser.class);
 
     public static int width(Type type) {
         return type.getSize();
@@ -154,7 +154,7 @@ public class StackAnalyser {
                     //@formatter:on
                     default: {
                         if (DEBUG) {
-                            logger.warn("Unhandled Opcode for IntInsnNode: {}", insn.getOpcode());
+                            LOGGER.warn("Unhandled Opcode for IntInsnNode: {}", insn.getOpcode());
                         }
                     }
                 }
@@ -165,7 +165,7 @@ public class StackAnalyser {
                 if (insn.getOpcode() == LDC) {
                     push(new Const(insn, insn.cst));
                 } else if (DEBUG) {
-                    logger.warn("Unhandled Opcode for LdcInsnNode: {}", insn.getOpcode());
+                    LOGGER.warn("Unhandled Opcode for LdcInsnNode: {}", insn.getOpcode());
                 }
                 break;
             }
@@ -188,7 +188,7 @@ public class StackAnalyser {
                         break;
                     default: {
                         if (DEBUG) {
-                            logger.warn("Unhandled Opcode for VarInsnNode: {}", insn.getOpcode());
+                            LOGGER.warn("Unhandled Opcode for VarInsnNode: {}", insn.getOpcode());
                         }
                     }
                 }
@@ -199,7 +199,7 @@ public class StackAnalyser {
                 if (insn.getOpcode() == IINC) {
                     setL(insn.var, new Store(new BinaryOp(insn, new Const(insn, insn.incr), new Load(insn, locals.get(insn.var)))));
                 } else if (DEBUG) {
-                    logger.warn("Unhandled Opcode for IincInsnNode: {}", insn.getOpcode());
+                    LOGGER.warn("Unhandled Opcode for IincInsnNode: {}", insn.getOpcode());
                 }
                 break;
             }
@@ -236,7 +236,7 @@ public class StackAnalyser {
                         break;
                     default: {
                         if (DEBUG) {
-                            logger.warn("Unhandled Opcode for JumpInsnNode: {}", insn.getOpcode());
+                            LOGGER.warn("Unhandled Opcode for JumpInsnNode: {}", insn.getOpcode());
                         }
                     }
                 }
@@ -264,7 +264,7 @@ public class StackAnalyser {
                         break;
                     default:
                         if (DEBUG) {
-                            logger.warn("Unhandled Opcode for FieldInsnNode: {}", insn.getOpcode());
+                            LOGGER.warn("Unhandled Opcode for FieldInsnNode: {}", insn.getOpcode());
                         }
                 }
                 break;
@@ -283,7 +283,7 @@ public class StackAnalyser {
                     }
                     default:
                         if (DEBUG) {
-                            logger.warn("Unhandled Opcode for MethodInsnNode: {}", insn.getOpcode());
+                            LOGGER.warn("Unhandled Opcode for MethodInsnNode: {}", insn.getOpcode());
                         }
                 }
                 break;
@@ -313,7 +313,7 @@ public class StackAnalyser {
                         break;
                     default:
                         if (DEBUG) {
-                            logger.warn("Unhandled Opcode for TypeInsnNode: {}", insn.getOpcode());
+                            LOGGER.warn("Unhandled Opcode for TypeInsnNode: {}", insn.getOpcode());
                         }
                 }
                 break;
@@ -333,22 +333,22 @@ public class StackAnalyser {
                     switch (insn.type) {
                         case F_NEW:
                         case F_FULL:
-                            logger.info("Reset stacks/locals.");
+                            LOGGER.info("Reset stacks/locals.");
                             break;
                         case F_APPEND:
-                            logger.info("Add locals.");
+                            LOGGER.info("Add locals.");
                             break;
                         case F_CHOP:
-                            logger.info("Remove locals.");
+                            LOGGER.info("Remove locals.");
                             break;
                         case F_SAME:
-                            logger.info("Reset.");
+                            LOGGER.info("Reset.");
                             break;
                         case F_SAME1:
-                            logger.info("Reset locals and all but bottom stack.");
+                            LOGGER.info("Reset locals and all but bottom stack.");
                             break;
                         default:
-                            logger.info("Unhandled frame type: {}", insn.type);
+                            LOGGER.info("Unhandled frame type: {}", insn.type);
                     }
                 }
                 break;
@@ -362,7 +362,7 @@ public class StackAnalyser {
             }
             default:
                 if (DEBUG) {
-                    logger.warn("Unhandled AbstractInsnNode type: {}", aInsn.getType());
+                    LOGGER.warn("Unhandled AbstractInsnNode type: {}", aInsn.getType());
                 }
         }
 
@@ -479,7 +479,7 @@ public class StackAnalyser {
             //@formatter:on
             default:
                 if (DEBUG) {
-                    logger.warn("Unhandled Opcode for InsnNode: {}", insn.getOpcode());
+                    LOGGER.warn("Unhandled Opcode for InsnNode: {}", insn.getOpcode());
                 }
         }
     }

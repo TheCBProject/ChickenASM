@@ -1,12 +1,11 @@
 package codechicken.asm;
 
 import codechicken.asm.transformers.ClassNodeTransformer;
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.tree.ClassNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -27,8 +26,6 @@ public class ModularASMTransformer {
     //The format in which to dump the transformed classes.
     public static final boolean DUMP_RAW = Boolean.parseBoolean(System.getProperty("ccl.asm.debug.dump_raw", "false")) && DEBUG;
     public static final boolean DUMP_TEXT = Boolean.parseBoolean(System.getProperty("ccl.asm.debug.dump_text", "false")) && DEBUG;
-    private static final Logger logger = LogManager.getLogger();
-    public static final Level LEVEL = DEBUG ? Level.INFO : Level.DEBUG;
 
     public File dumpFolder;
 
