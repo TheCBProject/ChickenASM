@@ -13,7 +13,7 @@ public class LocalVariablesSorterVisitor extends ClassVisitor {
     public String owner;
 
     public LocalVariablesSorterVisitor(Set<ObfMapping> methods, ClassVisitor cv) {
-        super(Opcodes.ASM4, cv);
+        super(Opcodes.ASM9, cv);
         this.methods = methods;
     }
 
