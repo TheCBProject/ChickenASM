@@ -1,6 +1,5 @@
 package codechicken.asm;
 
-import codechicken.asm.api.EnvironmentExtension.ExtensionLoader;
 import com.google.common.base.Objects;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
@@ -10,8 +9,6 @@ import org.objectweb.asm.commons.Remapper;
 import org.objectweb.asm.tree.*;
 
 public class ObfMapping {
-
-    public static final Remapper remapper = ExtensionLoader.EXTENSION != null ? ExtensionLoader.EXTENSION.getRemapper() : null;
 
     public String s_owner;
     public String s_name;
@@ -162,13 +159,6 @@ public class ObfMapping {
             s_desc = mapper.mapDesc(s_desc);
         }
 
-        return this;
-    }
-
-    public ObfMapping remap() {
-        if (remapper != null) {
-            map(remapper);
-        }
         return this;
     }
 

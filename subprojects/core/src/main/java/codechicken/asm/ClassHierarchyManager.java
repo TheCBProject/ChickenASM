@@ -1,14 +1,11 @@
 package codechicken.asm;
 
+import org.jetbrains.annotations.Nullable;
 import org.objectweb.asm.ClassReader;
 
 import javax.annotation.Nonnull;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
-
-import static codechicken.asm.api.EnvironmentExtension.ExtensionLoader;
+import java.util.*;
+import java.util.function.Function;
 
 public class ClassHierarchyManager {
 
@@ -39,6 +36,16 @@ public class ClassHierarchyManager {
     }
 
     public static HashMap<String, SuperCache> superclasses = new HashMap<>();
+    private static List<Function<String, byte @Nullable []>> CLASS_BYTE_LOOKUPS = new ArrayList<>(0);
+
+    /**
+     * Add a factory to find class bytes with.
+     *
+     * @param func The function.
+     */
+    public static void addByteLookupFunc(Function<String, byte @Nullable []> func) {
+        CLASS_BYTE_LOOKUPS.add(func);
+    }
 
     /**
      * @param name       The class in question
@@ -68,13 +75,14 @@ public class ClassHierarchyManager {
             return cache;
         }
 
-        if (ExtensionLoader.EXTENSION != null) {
+        for (Function<String, byte[]> func : CLASS_BYTE_LOOKUPS) {
             try {
-                byte[] bytes = ExtensionLoader.EXTENSION.getClassBytes(name);
+                byte[] bytes = func.apply(name);
                 if (bytes != null) {
                     cache = declareASM(bytes);
+                    break;
                 }
-            } catch (Exception ignored) {
+            } catch(Throwable ignored) {
             }
         }
 
