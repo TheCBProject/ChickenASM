@@ -1,8 +1,5 @@
 package codechicken.asm;
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-import com.google.common.collect.ImmutableMap;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.JumpInsnNode;
@@ -16,15 +13,15 @@ import static org.objectweb.asm.tree.AbstractInsnNode.*;
 public class ASMBlock {
 
     public InsnListSection list;
-    public BiMap<String, LabelNode> labels;
+    public Map<String, LabelNode> labels;
 
-    public ASMBlock(InsnListSection list, BiMap<String, LabelNode> labels) {
+    public ASMBlock(InsnListSection list, Map<String, LabelNode> labels) {
         this.list = list;
         this.labels = labels;
     }
 
     public ASMBlock(InsnListSection list) {
-        this(list, HashBiMap.create());
+        this(list, new HashMap<>());
     }
 
     public ASMBlock(InsnList list) {
@@ -51,7 +48,7 @@ public class ASMBlock {
         for (AbstractInsnNode insn : list) {
             switch (insn.getType()) {
                 case LABEL:
-                    AbstractInsnNode insn2 = insn.clone(labelMap);
+                    LabelNode insn2 = (LabelNode) insn.clone(labelMap);
                     if (insn2 == insn) {//identity mapping
                         continue;
                     }
@@ -69,10 +66,13 @@ public class ASMBlock {
         }
 
         for (Entry<LabelNode, LabelNode> entry : labelMap.entrySet()) {
-            String key = labels.inverse().get(entry.getKey());
-            if (key != null) {
-                labels.put(key, entry.getValue());
-            }
+            // I hate this stream call. It exists because BiMap was dropped..
+            labels.entrySet().stream()
+                    .filter(e -> e.getValue().equals(entry.getKey()))
+                    .findFirst()
+                    .map(Entry::getKey)
+                    .ifPresent(key -> labels.put(key, entry.getValue()));
+
         }
     }
 
@@ -83,7 +83,7 @@ public class ASMBlock {
     public void replaceLabel(String s, LabelNode l) {
         LabelNode old = get(s);
         if (old != null) {
-            replaceLabels(ImmutableMap.of(old, l));
+            replaceLabels(Collections.singletonMap(old, l));
         }
     }
 
@@ -127,7 +127,7 @@ public class ASMBlock {
     }
 
     public ASMBlock copy() {
-        BiMap<String, LabelNode> labels = HashBiMap.create();
+        Map<String, LabelNode> labels = new HashMap<>();
         Map<LabelNode, LabelNode> labelMap = list.cloneLabels();
 
         for (Entry<String, LabelNode> entry : this.labels.entrySet()) {
@@ -142,7 +142,7 @@ public class ASMBlock {
             return new ASMBlock(list2);
         }
 
-        Set<LabelNode> cFlowLabels1 = labels.values();
+        Set<LabelNode> cFlowLabels1 = new HashSet<>(labels.values());
         Set<LabelNode> cFlowLabels2 = InsnComparator.getControlFlowLabels(list2);
         ASMBlock block = new ASMBlock(list2);
 

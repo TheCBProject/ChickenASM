@@ -1,6 +1,5 @@
 package codechicken.asm;
 
-import com.google.common.collect.Maps;
 import org.objectweb.asm.tree.*;
 
 import java.util.*;
@@ -111,7 +110,8 @@ public class InsnComparator {
         }
 
         Set<LabelNode> controlFlowLabels = getControlFlowLabels(list);
-        Map<LabelNode, LabelNode> labelMap = Maps.asMap(controlFlowLabels, input -> input);
+        Map<LabelNode, LabelNode> labelMap = new HashMap<>();
+        controlFlowLabels.forEach(e -> labelMap.put(e, e));
 
         InsnListSection importantNodeList = new InsnListSection();
         for (AbstractInsnNode insn : list) {

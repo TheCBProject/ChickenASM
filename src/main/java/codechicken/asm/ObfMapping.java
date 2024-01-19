@@ -1,6 +1,5 @@
 package codechicken.asm;
 
-import com.google.common.base.Objects;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
@@ -178,7 +177,10 @@ public class ObfMapping {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(s_desc, s_name, s_owner);
+        int result = s_owner != null ? s_owner.hashCode() : 0;
+        result = 31 * result + (s_name != null ? s_name.hashCode() : 0);
+        result = 31 * result + (s_desc != null ? s_desc.hashCode() : 0);
+        return result;
     }
 
     @Override
