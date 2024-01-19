@@ -1,6 +1,8 @@
 package codechicken.asm;
 
 import org.objectweb.asm.tree.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -13,6 +15,8 @@ import static org.objectweb.asm.Opcodes.*;
 import static org.objectweb.asm.tree.AbstractInsnNode.*;
 
 public class ASMReader {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ASMReader.class);
 
     public static Map<String, Integer> opCodes = new HashMap<>();
     public static byte[] TYPE;
@@ -209,7 +213,7 @@ public class ASMReader {
                     }
                 }
                 line = line.trim();
-                if (line.length() == 0) {
+                if (line.isEmpty()) {
                     continue;
                 }
                 if (line.startsWith("list ")) {
@@ -303,8 +307,7 @@ public class ASMReader {
                         block.list.add(insn);
                     }
                 } catch (Exception e) {
-                    System.err.println("Error while reading ASM Block " + current + " from " + res + ", line: " + line);
-                    e.printStackTrace();
+                    LOGGER.error("Error while reading ASM Block {} from {}, line: {}", current, res, line, e);
                 }
             }
 

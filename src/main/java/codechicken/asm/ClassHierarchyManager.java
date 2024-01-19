@@ -35,8 +35,8 @@ public class ClassHierarchyManager {
         }
     }
 
-    public static HashMap<String, SuperCache> superclasses = new HashMap<>();
-    private static List<Function<String, byte @Nullable []>> CLASS_BYTE_LOOKUPS = new ArrayList<>(0);
+    public static final HashMap<String, SuperCache> superclasses = new HashMap<>();
+    private static final List<Function<String, byte @Nullable []>> CLASS_BYTE_LOOKUPS = new ArrayList<>(0);
 
     /**
      * Add a factory to find class bytes with.

@@ -8,7 +8,7 @@ import org.objectweb.asm.tree.MethodNode;
 public class ImportantInsnVisitor extends ClassVisitor {
 
     public ImportantInsnVisitor(ClassVisitor cv) {
-        super(Opcodes.ASM4, cv);
+        super(Opcodes.ASM9, cv);
     }
 
     @Override
@@ -21,7 +21,7 @@ public class ImportantInsnVisitor extends ClassVisitor {
         MethodVisitor delegate;
 
         public ImportantInsnMethodVisitor(int access, String name, String desc, String signature, String[] exceptions) {
-            super(Opcodes.ASM4, new MethodNode(access, name, desc, signature, exceptions));
+            super(Opcodes.ASM9, new MethodNode(access, name, desc, signature, exceptions));
             delegate = cv.visitMethod(access, name, desc, signature, exceptions);
         }
 

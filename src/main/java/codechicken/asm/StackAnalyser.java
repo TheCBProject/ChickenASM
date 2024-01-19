@@ -41,9 +41,9 @@ public class StackAnalyser {
     }
 
     public static int width(Stream<Type> stream) {
-        return stream//
-                .mapToInt(StackAnalyser::width)//
-                .reduce(Integer::sum)//
+        return stream
+                .mapToInt(StackAnalyser::width)
+                .reduce(Integer::sum)
                 .orElse(0);
     }
 
