@@ -2,6 +2,7 @@
 /*
 
 # Include important folders
+!src/
 
 # Gradle stuff
 !gradle/
@@ -20,6 +21,3 @@
 # Include git important files
 !.gitmodules
 !.gitignore
-
-# Include Important Folders
-!subprojects/

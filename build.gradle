@@ -1,74 +1,102 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+}
+
 group "codechicken"
 version = '3.2.0'
+archivesBaseName = 'ChickenASM'
 
 version = "$version." + (System.getenv("BUILD_NUMBER") ?: "1")
 println "Starting build of ${name}, Version: ${version}"
 
-subprojects { subProject ->
-    apply plugin: 'java'
-    apply plugin: 'java-library'
-    apply plugin: 'maven-publish'
+repositories {
+    mavenLocal()
+    jcenter()
+    mavenCentral()
+    maven { url "https://maven.covers1624.net/" }
+}
 
-    repositories {
-        mavenLocal()
-        jcenter()
-        mavenCentral()
-        maven { url "https://maven.covers1624.net/" }
-        maven { url "https://maven.minecraftforge.net/" }
+dependencies {
+    api 'org.slf4j:slf4j-api:1.7.36'
+    api 'org.ow2.asm:asm:9.2'
+    api 'org.ow2.asm:asm-tree:9.2'
+    api 'org.ow2.asm:asm-commons:9.2'
+    api 'org.ow2.asm:asm-util:9.2'
+
+    api 'com.google.guava:guava:31.0.1-jre'
+
+    compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
+    compileOnly 'org.jetbrains:annotations:22.0.0'
+}
+
+jar {
+    manifest {
+        attributes 'Specification-Title': archivesBaseName
+        attributes 'Specification-Vendor': 'covers1624'
+        attributes 'Specification-Version': "1"
+        attributes 'Implementation-Title': archivesBaseName
+        attributes 'Implementation-Vendor': 'covers1624'
+        attributes 'Implementation-Version': archiveVersion
+        attributes 'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
     }
+}
 
-    publishing {
-        repositories {
-            if (System.getenv('MAVEN_PASS')) {
-                maven {
-                    url "https://nexus.covers1624.net/repository/maven-releases/"
-                    credentials {
-                        username 'covers1624'
-                        password System.getenv('MAVEN_PASS')
-                    }
+
+publishing {
+    repositories {
+        if (System.getenv('MAVEN_PASS')) {
+            maven {
+                url "https://nexus.covers1624.net/repository/maven-releases/"
+                credentials {
+                    username 'covers1624'
+                    password System.getenv('MAVEN_PASS')
                 }
             }
         }
-        publications {
-            publication(MavenPublication) {
-                group = rootProject.group
-                version = rootProject.version
+    }
+    publications {
+        publication(MavenPublication) {
+            group = rootProject.group
+            version = rootProject.version
+            artifactId archivesBaseName
+            from components['java']
 
-                pom {
-                    name = archivesBaseName
-                    description = archivesBaseName
+            pom {
+                name = archivesBaseName
+                description = archivesBaseName
+                url = "https://github.com/TheCBProject/${archivesBaseName}"
+                scm {
                     url = "https://github.com/TheCBProject/${archivesBaseName}"
-                    scm {
-                        url = "https://github.com/TheCBProject/${archivesBaseName}"
-                        connection = "scm:git:git://github.com/TheCBProject/${archivesBaseName}.git"
-                        connection = "scm:git:git@github.com:TheCBProject/${archivesBaseName}.git"
-                    }
+                    connection = "scm:git:git://github.com/TheCBProject/${archivesBaseName}.git"
+                    connection = "scm:git:git@github.com:TheCBProject/${archivesBaseName}.git"
+                }
 
-                    issueManagement {
-                        system = 'github'
-                        url = "https://github.com/TheCBProject/${archivesBaseName}/issues"
+                issueManagement {
+                    system = 'github'
+                    url = "https://github.com/TheCBProject/${archivesBaseName}/issues"
+                }
+                licenses {
+                    license {
+                        name = "GNU Lesser Public License (GPL), Version 2.1"
+                        url = "https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt"
+                        distribution = 'repo'
                     }
-                    licenses {
-                        license {
-                            name = "GNU Lesser Public License (GPL), Version 2.1"
-                            url = "https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt"
-                            distribution = 'repo'
-                        }
+                }
+                developers {
+                    developer {
+                        id = 'covers1624'
+                        name = 'covers1624'
                     }
-                    developers {
-                        developer {
-                            id = 'covers1624'
-                            name = 'covers1624'
-                        }
-                    }
-                    developers {
-                        developer {
-                            id = 'chicken-bones'
-                            name = 'chicken-bones'
-                        }
+                }
+                developers {
+                    developer {
+                        id = 'chicken-bones'
+                        name = 'chicken-bones'
                     }
                 }
             }
         }
     }
 }
+
