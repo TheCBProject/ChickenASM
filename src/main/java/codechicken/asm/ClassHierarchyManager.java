@@ -120,7 +120,7 @@ public class ClassHierarchyManager {
 
     private static SuperCache declareASM(@Nonnull byte[] bytes) {
         ClassReader reader = new ClassReader(bytes);
-        String name = reader.getClassName();
+        String name = reader.getClassName().replace('/', '.');
 
         SuperCache cache = getOrCreateCache(name);
         cache.superclass = reader.getSuperName().replace('/', '.');
@@ -133,7 +133,7 @@ public class ClassHierarchyManager {
     }
 
     public static void declare(@Nonnull String name, @Nonnull byte[] bytes) {
-        if (!superclasses.containsKey(name)) {
+        if (!superclasses.containsKey(name.replace('/', '.'))) {
             declareASM(bytes);
         }
     }
